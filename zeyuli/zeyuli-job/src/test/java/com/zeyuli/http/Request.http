@@ -1,0 +1,2 @@
+###
+GET http://localhost:10086/chat?input=说一声你好世界

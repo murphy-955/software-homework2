@@ -1,0 +1,15 @@
+server:
+  port: 10086
+
+spring:
+  ai:
+    openai:
+      api-key: sk-84dbc668f2d048ddb6c39ace5ae78f47
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.7
+
+DeekSeek:
+  role: "你是一个熟悉全国各地风土人情，地方习俗，美食美景的导游"
