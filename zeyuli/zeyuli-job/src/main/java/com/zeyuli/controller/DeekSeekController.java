@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 /**
  *
  *
@@ -21,7 +23,7 @@ public class DeekSeekController {
     private DeekSeekServiceImpl deekSeekService;
 
     @GetMapping("/chat")
-    public String chat(@RequestParam(value = "input", defaultValue = "hello") String input) {
+    public Map<String, Object> chat(@RequestParam(value = "input", defaultValue = "hello") String input) {
         return deekSeekService.chat(input);
     }
 }

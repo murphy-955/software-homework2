@@ -1,5 +1,7 @@
 package com.zeyuli.service;
 
+import java.util.Map;
+
 public interface DeekSeekService {
-    String Chat(String input);
+    Map<String, Object> chat(String input);
 }

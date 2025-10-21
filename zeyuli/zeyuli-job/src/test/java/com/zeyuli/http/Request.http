@@ -1,2 +1,11 @@
 ###
 GET http://localhost:10086/chat?input=说一声你好世界
+
+###
+POST http://localhost:10086/user/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "f969248d621bcded4a3582a1c3b17a71eedfefa9120c36ee3bd1957438cd55b9"
+}

@@ -1,9 +1,13 @@
 package com.zeyuli.service.impl;
 
 
+import com.zeyuli.service.DeekSeekService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -12,12 +16,12 @@ import org.springframework.stereotype.Service;
  * @since 2025-10-21 15:13
  */
 @Service
-public class DeekSeekServiceImpl implements com.zeyuli.service.DeekSeekService {
+public class DeekSeekServiceImpl implements DeekSeekService {
     @Autowired
     private ChatClient chatClient;
 
     @Override
-    public String Chat(String input) {
-        return "";
+    public Map<String, Object> chat(String input) {
+        return new HashMap<>();
     }
 }
