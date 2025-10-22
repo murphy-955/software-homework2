@@ -4,8 +4,12 @@ package com.zeyuli.service.impl;
 import com.zeyuli.service.DeekSeekService;
 import com.zeyuli.util.Response;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,6 +19,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -29,6 +34,9 @@ public class DeekSeekServiceImpl implements DeekSeekService {
 
     @Value("${DeekSeek.role}")
     private String role;
+
+    @Autowired
+    private ChatModel chatModel;
 
     public Flux<String> chat(String startCity, String endCity, LocalDate startDate, LocalDate endDate) {
         String message = """
@@ -62,7 +70,11 @@ public class DeekSeekServiceImpl implements DeekSeekService {
         UserMessage userMessage = new UserMessage(message);
 
         SystemPromptTemplate promptTemplate = new SystemPromptTemplate(role);
-        promptTemplate.createMessage(Map.of("endCity", endCity));
-        return chatClient.prompt().user(message).stream().content();
+        Message systemMessage = promptTemplate.createMessage(Map.of("endCity", endCity));
+        Prompt prompt = new Prompt(userMessage, systemMessage);
+        return chatModel.call(prompt)
+                .getResults().stream()
+                .map(x->x.getOutput().getContent()).collect(Collectors.joining(""));
+//        return chatClient.prompt().user(message).stream().content();
     }
 }
