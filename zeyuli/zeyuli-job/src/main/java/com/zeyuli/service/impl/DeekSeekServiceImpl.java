@@ -22,6 +22,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * 调用ai业务层实现的接口
+ *
  * @author 李泽聿
  * @since 2025-10-21 15:13
  */
@@ -98,7 +100,7 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                     .doOnNext(fullResponse::append)
                     .doOnComplete(() -> {
                         // 对话完成后，将用户消息和AI响应添加到历史记录
-                        if (fullResponse.length() > 0) {
+                        if (!fullResponse.isEmpty()) {
                             // 添加用户消息到历史
                             history.add(userMessage);
 
@@ -109,8 +111,8 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                             while (history.size() > MAX_HISTORY_SIZE) {
                                 // 保留系统消息，只移除用户和助手消息
                                 if (history.size() > 2) { // 确保至少保留一对对话
-                                    history.remove(0); // 移除最旧的用户消息
-                                    history.remove(0); // 移除对应的助手消息
+                                    history.removeFirst(); // 移除最旧的用户消息
+                                    history.removeFirst(); // 移除对应的助手消息
                                 } else {
                                     break;
                                 }
@@ -169,7 +171,7 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                 
                 【旅行基本信息】
                 - 出发地：%s
-                - 目的地：%s  
+                - 目的地：%s
                 - 出发日期：%s
                 - 返回日期：%s
                 
