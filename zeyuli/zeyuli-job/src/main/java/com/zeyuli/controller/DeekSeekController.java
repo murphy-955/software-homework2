@@ -1,11 +1,12 @@
 package com.zeyuli.controller;
 
 
+import com.zeyuli.pojo.UserItineraryPlan;
 import com.zeyuli.service.impl.DeekSeekServiceImpl;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.util.Map;
 
@@ -17,13 +18,15 @@ import java.util.Map;
  */
 
 @RestController
+@RequestMapping("/deekseek")
 public class DeekSeekController {
 
     @Autowired
     private DeekSeekServiceImpl deekSeekService;
 
-    @GetMapping("/chat")
-    public Map<String, Object> chat(@RequestParam(value = "input", defaultValue = "hello") String input) {
-        return deekSeekService.chat(input);
+    @ApiOperation(value = "计划行程", notes = "根据用户输入的行程信息，生成行程计划")
+    @GetMapping(path = "/planItinerary",produces = "text/HTML;charset=UTF-8")
+    public Flux<String> chat(@RequestBody UserItineraryPlan plan) {
+        return deekSeekService.chat(plan.getStartCity(), plan.getEndCity(), plan.getStartDate(), plan.getEndDate());
     }
 }

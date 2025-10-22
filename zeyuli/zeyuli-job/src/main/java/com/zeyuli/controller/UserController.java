@@ -1,6 +1,7 @@
 package com.zeyuli.controller;
 
 
+import com.zeyuli.pojo.vo.RegisterVo;
 import com.zeyuli.pojo.vo.UserVo;
 import com.zeyuli.service.impl.UserServiceImpl;
 import io.swagger.annotations.ApiOperation;
@@ -28,5 +29,11 @@ public class UserController {
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody UserVo vo) {
         return userService.login(vo.getUserName(), vo.getPassword());
+    }
+
+    @ApiOperation(value = "用户注册", notes = "用户注册接口")
+    @PostMapping("/register")
+    public Map<String, Object> register(@RequestBody RegisterVo vo) {
+        return userService.register(vo.getUsername(), vo.getPassword());
     }
 }

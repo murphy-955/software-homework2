@@ -14,5 +14,10 @@
         FROM users
         WHERE user_name = #{userName} AND password = #{password}
     </select>
+
+    <insert id="register">
+        INSERT INTO users (id, user_name, password)
+        VALUES (#{id}, #{username}, #{password})
+    </insert>
 </mapper>
 

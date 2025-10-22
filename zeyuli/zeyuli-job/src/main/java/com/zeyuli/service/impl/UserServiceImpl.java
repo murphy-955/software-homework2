@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  *
@@ -67,5 +68,32 @@ public class UserServiceImpl implements UserService {
             return Response.success(data);
         }
         return Response.failed(StatusCodeEnum.LOGIN_FAILED);
+    }
+
+    /**
+     * 注册
+     *
+     * @author : 李泽聿
+     * @since : 2025-10-22 08:04
+     * @param username 用户名
+     * @param password 密码
+     * @return : java.util.Map<java.lang.String,java.lang.Object>成功返回：<pre>
+     *     {@code
+     *      {
+     *         "message": "成功",
+     *         "statusCode": 200
+     *      }
+     *     }
+     * </pre>
+     * <br>
+     */
+    @Override
+    public Map<String, Object> register(String username, String password) {
+        String id = UUID.randomUUID().toString().replaceAll("-", "");
+        int res = userMapper.register(id, username, password);
+        if (res > 0) {
+            return Response.success();
+        }
+        return Response.failed(StatusCodeEnum.REGISTER_FAILED);
     }
 }

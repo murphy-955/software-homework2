@@ -14,7 +14,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum StatusCodeEnum {
     SUCCESS(200, "成功"),
-    LOGIN_FAILED(420, "登录失败");
+    LOGIN_FAILED(420, "登录失败"),
+    REGISTER_FAILED(421, "注册失败");
 
     private final Integer statusCode;
     private final String message;
