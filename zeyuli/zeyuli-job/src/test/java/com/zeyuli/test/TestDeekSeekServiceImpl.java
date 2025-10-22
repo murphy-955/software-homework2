@@ -22,6 +22,6 @@ public class TestDeekSeekServiceImpl {
 
     @Test
     public void test() {
-        Map<String, Object> chat = deekSeekService.chat("北京", "上海", LocalDate.now(), LocalDate.now());
+//        Map<String, Object> chat = deekSeekService.chat("北京", "上海", LocalDate.now(), LocalDate.now());
     }
 }

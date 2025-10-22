@@ -11,4 +11,4 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:10086/deekseek/planItinerary?startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
+GET http://localhost:10086/deekseek/planItinerary?token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169kBLAWEId6iCiQcMkaAmxt3F4_95D9Q2QwB23qNGJaiFxToxhl3EmdIYvWWEAVpNxyQ5dS0xb3tf5Ypnz4VWop-ku0BAZ5EUe6veD9fGVhteAAAA.k_Dfzay7m7UN8DL30_huGktGjSrGgIBw8PsLVCy4kU5c0BCbG3W9mkIXFFIlELBeP-Rz8LhJUgUGhrliPSVjkA&startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05

@@ -2,6 +2,7 @@ package com.zeyuli.controller;
 
 
 import com.zeyuli.pojo.UserItineraryPlan;
+import com.zeyuli.service.DeekSeekService;
 import com.zeyuli.service.impl.DeekSeekServiceImpl;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,14 +27,16 @@ import java.util.Map;
 public class DeekSeekController {
 
     @Autowired
-    private DeekSeekServiceImpl deekSeekService;
+    private DeekSeekService deekSeekService;
 
     @ApiOperation(value = "根据用户输入的出发地、目的地、出发日期、返回日期，生成旅行计划", notes = "根据用户输入的出发地、目的地、出发日期、返回日期，生成旅行计划")
     @GetMapping(path = "/planItinerary", produces = "text/html;charset=UTF-8")
     public Flux<String> chat(@RequestParam("startCity") String startCity,
                              @RequestParam("endCity") String endCity,
-                             @RequestParam("startDate")LocalDate startDate,
-                             @RequestParam("endDate") LocalDate endDate) {
-        return deekSeekService.chat(startCity, endCity, startDate, endDate);
+                             @RequestParam("startDate") LocalDate startDate,
+                             @RequestParam("endDate") LocalDate endDate,
+                             @RequestParam("token") String token,
+                             @RequestParam(value = "userInput",defaultValue = "")String userInput) {
+        return deekSeekService.chat(userInput,token,startCity, endCity, startDate, endDate);
     }
 }

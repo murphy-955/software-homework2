@@ -19,5 +19,11 @@
         INSERT INTO users (id, user_name, password)
         VALUES (#{id}, #{username}, #{password})
     </insert>
+
+    <select id="selectUserInfo">
+        SELECT id, user_name, password
+        FROM users
+        WHERE id = #{id}
+    </select>
 </mapper>
 
