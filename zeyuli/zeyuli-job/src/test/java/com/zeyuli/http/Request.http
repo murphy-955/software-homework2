@@ -11,12 +11,4 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:10086/deekseek/planItinerary
-Content-Type: application/json
-
-{
-  "endCity": "南京",
-  "startCity": "福州",
-  "startDate": "2025-01-01",
-  "endDate": "2025-01-07"
-}
+GET http://localhost:10086/deekseek/planItinerary?startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05

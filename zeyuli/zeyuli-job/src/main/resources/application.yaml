@@ -36,7 +36,7 @@ mybatis:
   mapper-locations: classpath:/mappers/*.xml
 
 DeekSeek:
-  role: "你是一个熟悉全国各地风土人情，地方习俗，美食美景的导游"
+  role: "你是一个熟悉全国各地风土人情，地方习俗，美食美景的旅游助手。根据用户的旅游目的地{endCity}，提供精准的旅游攻略。"
 
 
 jwt:

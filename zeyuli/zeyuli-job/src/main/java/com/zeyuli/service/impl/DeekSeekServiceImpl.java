@@ -4,7 +4,10 @@ package com.zeyuli.service.impl;
 import com.zeyuli.service.DeekSeekService;
 import com.zeyuli.util.Response;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -24,33 +27,42 @@ public class DeekSeekServiceImpl implements DeekSeekService {
     @Autowired
     private ChatClient chatClient;
 
-    public Flux<String> chat(String startCity, String endCity, LocalDate startDate, LocalDate endDate){
+    @Value("${DeekSeek.role}")
+    private String role;
+
+    public Flux<String> chat(String startCity, String endCity, LocalDate startDate, LocalDate endDate) {
         String message = """
-    请为从%s到%s的旅行制定详细计划（出发：%s 返回：%s），需包含以下要素：
-    
-    【基础信息】
-    - 出发地天气：%s同期气候特点
-    - 目的地天气：%s实时天气预报
-    - 两地交通：%s出发交通与%s到达交通方案
-    
-    【目的地特色】
-    - 经济消费水平：%s物价指数说明
-    - 必去景点：%s十大推荐景点
-    - 特色美食：%s餐饮指南
-    
-    【行程规划】
-    - 住宿推荐：%s高性价比住宿区域
-    - 购物攻略：%s特色商品购买指南
-    - 行程路线：%s到%s每日详细路线
-    """.formatted(
+                请为从%s到%s的旅行制定详细计划（出发：%s 返回：%s），需包含以下要素：
+                
+                【基础信息】
+                - 出发地天气：%s同期气候特点
+                - 目的地天气：%s实时天气预报
+                - 两地交通：%s出发交通与%s到达交通方案
+                
+                【目的地特色】
+                - 经济消费水平：%s物价指数说明
+                - 必去景点：%s十大推荐景点
+                - 特色美食：%s餐饮指南
+                
+                【行程规划】
+                - 住宿推荐：%s高性价比住宿区域
+                - 购物攻略：%s特色商品购买指南
+                - 行程路线：%s到%s每日详细路线
+                - 天气变化：%s每日天气变化预报
+                """.formatted(
                 startCity, endCity,
                 startDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日")),
                 endDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日")),
                 startCity, endCity, startCity, endCity,
                 endCity, endCity, endCity,
                 endCity, endCity,
-                startCity, endCity
+                startCity, endCity,
+                endCity
         );
+        UserMessage userMessage = new UserMessage(message);
+
+        SystemPromptTemplate promptTemplate = new SystemPromptTemplate(role);
+        promptTemplate.createMessage(Map.of("endCity", endCity));
         return chatClient.prompt().user(message).stream().content();
     }
 }
