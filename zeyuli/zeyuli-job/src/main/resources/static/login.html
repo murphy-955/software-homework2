@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>365里路</title>
+    <title>ai旅游助手登录</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
@@ -13,7 +13,7 @@
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
             background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             min-height: 100vh;
@@ -22,7 +22,7 @@
             align-items: center;
             padding: 20px;
         }
-        
+
         .container {
             width: 100%;
             max-width: 900px;
@@ -31,7 +31,7 @@
             border-radius: 20px;
             overflow: hidden;
         }
-        
+
         .welcome-section {
             flex: 1;
             background: linear-gradient(135deg, rgba(106, 17, 203, 0.9), rgba(37, 117, 252, 0.9));
@@ -41,51 +41,51 @@
             flex-direction: column;
             justify-content: center;
         }
-        
+
         .welcome-section h1 {
             font-size: 2.5rem;
             margin-bottom: 20px;
         }
-        
+
         .welcome-section p {
             font-size: 1.1rem;
             line-height: 1.6;
             margin-bottom: 30px;
         }
-        
+
         .features {
             list-style: none;
         }
-        
+
         .features li {
             margin-bottom: 15px;
             display: flex;
             align-items: center;
         }
-        
+
         .features i {
             margin-right: 10px;
             font-size: 1.2rem;
         }
-        
+
         .form-section {
             flex: 1;
             background: white;
             padding: 40px;
         }
-        
+
         .form-container {
             height: 100%;
             display: flex;
             flex-direction: column;
         }
-        
+
         .form-toggle {
             display: flex;
             margin-bottom: 30px;
             border-bottom: 1px solid #eee;
         }
-        
+
         .toggle-btn {
             padding: 10px 20px;
             background: none;
@@ -97,11 +97,11 @@
             transition: all 0.3s;
             position: relative;
         }
-        
+
         .toggle-btn.active {
             color: #2575fc;
         }
-        
+
         .toggle-btn.active::after {
             content: '';
             position: absolute;
@@ -112,34 +112,34 @@
             background: #2575fc;
             border-radius: 3px 3px 0 0;
         }
-        
+
         .form {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
-        
+
         .form.hidden {
             display: none;
         }
-        
+
         .form h2 {
             margin-bottom: 25px;
             color: #333;
         }
-        
+
         .input-group {
             margin-bottom: 20px;
         }
-        
+
         .input-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: #555;
         }
-        
+
         .input-group input {
             width: 100%;
             padding: 12px 15px;
@@ -148,13 +148,13 @@
             font-size: 1rem;
             transition: all 0.3s;
         }
-        
+
         .input-group input:focus {
             border-color: #2575fc;
             box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.2);
             outline: none;
         }
-        
+
         .submit-btn {
             background: linear-gradient(135deg, #6a11cb, #2575fc);
             color: white;
@@ -167,23 +167,23 @@
             transition: all 0.3s;
             margin-top: 10px;
         }
-        
+
         .submit-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(37, 117, 252, 0.4);
         }
-        
+
         .submit-btn:active {
             transform: translateY(0);
         }
-        
+
         .submit-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
-        
+
         .message {
             margin-top: 20px;
             padding: 12px;
@@ -192,43 +192,45 @@
             font-weight: 500;
             display: none;
         }
-        
+
         .message.success {
             background: #e7f7ef;
             color: #2ecc71;
             display: block;
         }
-        
+
         .message.error {
             background: #fde8e8;
             color: #e74c3c;
             display: block;
         }
-        
+
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            border: 3px solid rgba(255, 255, 255, .3);
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
             margin-right: 10px;
         }
-        
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
-        
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
             }
-            
+
             .welcome-section {
                 padding: 30px;
             }
-            
+
             .form-section {
                 padding: 30px;
             }
@@ -236,255 +238,223 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="welcome-section">
-            <h1>欢迎使用我们的平台</h1>
-            <p>登录或注册账户以享受我们提供的所有功能和服务。我们致力于为您提供最佳的用户体验。</p>
-            <ul class="features">
-                <li><i class="fas fa-check-circle"></i> 安全可靠的身份验证</li>
-                <li><i class="fas fa-check-circle"></i> 个性化用户体验</li>
-                <li><i class="fas fa-check-circle"></i> 为您提供旅游攻略、景点推荐、交通工具查询等一站式ai服务的平台</li>
-            </ul>
-        </div>
-        
-        <div class="form-section">
-            <div class="form-container">
-                <div class="form-toggle">
-                    <button class="toggle-btn active" id="login-toggle">登录</button>
-                    <button class="toggle-btn" id="register-toggle">注册</button>
-                </div>
-                
-                <form class="form" id="login-form">
-                    <h2>登录您的账户</h2>
-                    <div class="input-group">
-                        <label for="login-username">用户名</label>
-                        <input type="text" id="login-username" placeholder="请输入用户名" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="login-password">密码</label>
-                        <input type="password" id="login-password" placeholder="请输入密码" required>
-                    </div>
-                    <button type="submit" class="submit-btn" id="login-btn">
-                        <span class="btn-text">登录</span>
-                    </button>
-                    <div class="message" id="login-message"></div>
-                </form>
-                
-                <form class="form hidden" id="register-form">
-                    <h2>创建新账户</h2>
-                    <div class="input-group">
-                        <label for="register-username">用户名</label>
-                        <input type="text" id="register-username" placeholder="请输入用户名" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="register-password">密码</label>
-                        <input type="password" id="register-password" placeholder="请输入密码" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="confirm-password">确认密码</label>
-                        <input type="password" id="confirm-password" placeholder="请再次输入密码" required>
-                    </div>
-                    <button type="submit" class="submit-btn" id="register-btn">
-                        <span class="btn-text">注册</span>
-                    </button>
-                    <div class="message" id="register-message"></div>
-                </form>
-            </div>
-        </div>
+<div class="container">
+    <div class="welcome-section">
+        <h1>欢迎使用我们的平台</h1>
+        <p>登录或注册账户以享受我们提供的所有功能和服务。我们致力于为您提供最佳的用户体验。</p>
+        <ul class="features">
+            <li><i class="fas fa-check-circle"></i> 安全可靠的身份验证</li>
+            <li><i class="fas fa-check-circle"></i> 个性化用户体验</li>
+            <li><i class="fas fa-check-circle"></i> 为您提供旅游攻略、景点推荐、交通工具查询等一站式ai服务的平台</li>
+        </ul>
     </div>
 
-    <script>
-        // 切换登录和注册表单
-        const loginToggle = document.getElementById('login-toggle');
-        const registerToggle = document.getElementById('register-toggle');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        
-        loginToggle.addEventListener('click', () => {
-            loginToggle.classList.add('active');
-            registerToggle.classList.remove('active');
-            loginForm.classList.remove('hidden');
-            registerForm.classList.add('hidden');
-        });
-        
-        registerToggle.addEventListener('click', () => {
-            registerToggle.classList.add('active');
-            loginToggle.classList.remove('active');
-            registerForm.classList.remove('hidden');
-            loginForm.classList.add('hidden');
-        });
-        
-        // 密码SHA256加密函数
-        function sha256(password) {
-            return CryptoJS.SHA256(password).toString();
+    <div class="form-section">
+        <div class="form-container">
+            <div class="form-toggle">
+                <button class="toggle-btn active" id="login-toggle">登录</button>
+                <button class="toggle-btn" id="register-toggle">注册</button>
+            </div>
+
+            <form class="form" id="login-form">
+                <h2>登录您的账户</h2>
+                <div class="input-group">
+                    <label for="login-username">用户名</label>
+                    <input type="text" id="login-username" placeholder="请输入用户名" required>
+                </div>
+                <div class="input-group">
+                    <label for="login-password">密码</label>
+                    <input type="password" id="login-password" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="submit-btn" id="login-btn">
+                    <span class="btn-text">登录</span>
+                </button>
+                <div class="message" id="login-message"></div>
+            </form>
+
+            <form class="form hidden" id="register-form">
+                <h2>创建新账户</h2>
+                <div class="input-group">
+                    <label for="register-username">用户名</label>
+                    <input type="text" id="register-username" placeholder="请输入用户名" required>
+                </div>
+                <div class="input-group">
+                    <label for="register-password">密码</label>
+                    <input type="password" id="register-password" placeholder="请输入密码" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirm-password">确认密码</label>
+                    <input type="password" id="confirm-password" placeholder="请再次输入密码" required>
+                </div>
+                <button type="submit" class="submit-btn" id="register-btn">
+                    <span class="btn-text">注册</span>
+                </button>
+                <div class="message" id="register-message"></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 切换登录和注册表单
+    const loginToggle = document.getElementById('login-toggle');
+    const registerToggle = document.getElementById('register-toggle');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+
+    loginToggle.addEventListener('click', () => {
+        loginToggle.classList.add('active');
+        registerToggle.classList.remove('active');
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+    });
+
+    registerToggle.addEventListener('click', () => {
+        registerToggle.classList.add('active');
+        loginToggle.classList.remove('active');
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+    });
+
+    // 密码SHA256加密函数
+    function sha256(password) {
+        return CryptoJS.SHA256(password).toString();
+    }
+
+    // 显示消息
+    function showMessage(element, message, type) {
+        element.textContent = message;
+        element.className = 'message ' + type;
+        setTimeout(() => {
+            element.className = 'message';
+        }, 5000);
+    }
+
+    // 设置按钮加载状态
+    function setButtonLoading(button, isLoading) {
+        const btnText = button.querySelector('.btn-text');
+        if (isLoading) {
+            button.disabled = true;
+            btnText.innerHTML = '<span class="loading"></span>处理中...';
+        } else {
+            button.disabled = false;
+            btnText.textContent = button.id === 'login-btn' ? '登录' : '注册';
         }
-        
-        // 显示消息
-        function showMessage(element, message, type) {
-            element.textContent = message;
-            element.className = 'message ' + type;
-            setTimeout(() => {
-                element.className = 'message';
-            }, 5000);
+    }
+
+    // 登录表单提交
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        const loginBtn = document.getElementById('login-btn');
+        const message = document.getElementById('login-message');
+
+        if (!username || !password) {
+            showMessage(message, '请输入用户名和密码', 'error');
+            return;
         }
-        
-        // 设置按钮加载状态
-        function setButtonLoading(button, isLoading) {
-            const btnText = button.querySelector('.btn-text');
-            if (isLoading) {
-                button.disabled = true;
-                btnText.innerHTML = '<span class="loading"></span>处理中...';
+
+        setButtonLoading(loginBtn, true);
+
+        try {
+            // 模拟API调用
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // 实际API调用代码（注释掉，因为实际API不存在）
+
+            const response = await fetch('user/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userName: username,
+                    password: sha256(password)
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.statusCode === 200) {
+                showMessage(message, '登录成功！正在跳转...', 'success');
+                // 实际应用中保存token并跳转
+                // localStorage.setItem('token', result.data.token);
+                // window.location.href = '/dashboard';
             } else {
-                button.disabled = false;
-                btnText.textContent = button.id === 'login-btn' ? '登录' : '注册';
+                showMessage(message, result.message, 'error');
             }
+        } catch (error) {
+            showMessage(message, '网络错误，请稍后重试', 'error');
+        } finally {
+            setButtonLoading(loginBtn, false);
         }
-        
-        // 登录表单提交
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
-            const loginBtn = document.getElementById('login-btn');
-            const message = document.getElementById('login-message');
-            
-            if (!username || !password) {
-                showMessage(message, '请输入用户名和密码', 'error');
-                return;
+    });
+
+    // 注册表单提交
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const registerBtn = document.getElementById('register-btn');
+        const message = document.getElementById('register-message');
+
+        if (!username || !password || !confirmPassword) {
+            showMessage(message, '请填写所有字段', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showMessage(message, '两次输入的密码不一致', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            showMessage(message, '密码长度至少为6位', 'error');
+            return;
+        }
+
+        setButtonLoading(registerBtn, true);
+
+        try {
+            // 模拟API调用
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // 实际API调用代码（注释掉，因为实际API不存在）
+
+            const response = await fetch('user/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userName: username,
+                    password: sha256(password)
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.statusCode === 200) {
+                showMessage(message, '注册成功！请登录', 'success');
+                // 切换到登录表单
+                setTimeout(() => {
+                    loginToggle.click();
+                    document.getElementById('login-username').value = username;
+                }, 2000);
+            } else {
+                showMessage(message, result.message, 'error');
             }
-            
-            setButtonLoading(loginBtn, true);
-            
-            try {
-                // 模拟API调用
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // 实际API调用代码（注释掉，因为实际API不存在）
-              
-                const response = await fetch('user/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userName: username,
-                        password: sha256(password)
-                    })
-                });
-                
-                const result = await response.json();
-              
-                if (username === 'admin' && password === 'admin123') {
-                    result = {
-                        data: {
-                            token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNjE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-                        },
-                        message: "成功",
-                        statusCode: 200
-                    };
-                } else {
-                    result = {
-                        data: null,
-                        message: "登录失败",
-                        statusCode: 420
-                    };
-                }
-                
-                if (result.statusCode === 200) {
-                    showMessage(message, '登录成功！正在跳转...', 'success');
-                    // 实际应用中保存token并跳转
-                    // localStorage.setItem('token', result.data.token);
-                    // window.location.href = '/dashboard';
-                } else {
-                    showMessage(message, result.message, 'error');
-                }
-            } catch (error) {
-                showMessage(message, '网络错误，请稍后重试', 'error');
-            } finally {
-                setButtonLoading(loginBtn, false);
-            }
-        });
-        
-        // 注册表单提交
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const username = document.getElementById('register-username').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            const registerBtn = document.getElementById('register-btn');
-            const message = document.getElementById('register-message');
-            
-            if (!username || !password || !confirmPassword) {
-                showMessage(message, '请填写所有字段', 'error');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                showMessage(message, '两次输入的密码不一致', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage(message, '密码长度至少为6位', 'error');
-                return;
-            }
-            
-            setButtonLoading(registerBtn, true);
-            
-            try {
-                // 模拟API调用
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // 实际API调用代码（注释掉，因为实际API不存在）
-                /*
-                const response = await fetch('user/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userName: username,
-                        password: sha256(password)
-                    })
-                });
-                
-                const result = await response.json();
-                */
-                
-                // 模拟响应 - 假设用户名为"admin"时注册失败
-                let result;
-                if (username === 'admin') {
-                    result = {
-                        data: null,
-                        message: "注册失败",
-                        statusCode: 421
-                    };
-                } else {
-                    result = {
-                        data: null,
-                        message: "注册成功",
-                        statusCode: 200
-                    };
-                }
-                
-                if (result.statusCode === 200) {
-                    showMessage(message, '注册成功！请登录', 'success');
-                    // 切换到登录表单
-                    setTimeout(() => {
-                        loginToggle.click();
-                        document.getElementById('login-username').value = username;
-                    }, 2000);
-                } else {
-                    showMessage(message, result.message, 'error');
-                }
-            } catch (error) {
-                showMessage(message, '网络错误，请稍后重试', 'error');
-            } finally {
-                setButtonLoading(registerBtn, false);
-            }
-        });
-    </script>
+        } catch (error) {
+            console.log(error)
+            showMessage(message, '网络错误，请稍后重试', 'error');
+        } finally {
+            setButtonLoading(registerBtn, false);
+        }
+    });
+</script>
 </body>
 </html>

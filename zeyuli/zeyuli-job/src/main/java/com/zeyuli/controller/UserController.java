@@ -34,6 +34,6 @@ public class UserController {
     @ApiOperation(value = "用户注册", notes = "用户注册接口")
     @PostMapping("/register")
     public Map<String, Object> register(@RequestBody RegisterVo vo) {
-        return userService.register(vo.getUsername(), vo.getPassword());
+        return userService.register(vo.getUserName(), vo.getPassword());
     }
 }

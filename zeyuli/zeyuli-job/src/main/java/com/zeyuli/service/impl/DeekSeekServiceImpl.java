@@ -72,9 +72,9 @@ public class DeekSeekServiceImpl implements DeekSeekService {
         SystemPromptTemplate promptTemplate = new SystemPromptTemplate(role);
         Message systemMessage = promptTemplate.createMessage(Map.of("endCity", endCity));
         Prompt prompt = new Prompt(userMessage, systemMessage);
-        return chatModel.call(prompt)
-                .getResults().stream()
-                .map(x->x.getOutput().getContent()).collect(Collectors.joining(""));
-//        return chatClient.prompt().user(message).stream().content();
+//        return chatModel.call(prompt)
+//                .getResults().stream()
+//                .map(x->x.getOutput().getContent()).collect(Collectors.joining(""));
+        return chatClient.prompt().user(message).stream().content();
     }
 }
