@@ -28,7 +28,7 @@ public class UserController {
     @ApiOperation(value = "用户登录", notes = "用户登录接口")
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody UserVo vo) {
-        return userService.login(vo.getUserName(), vo.getPassword());
+        return userService.login(vo);
     }
 
     @ApiOperation(value = "用户注册", notes = "用户注册接口")

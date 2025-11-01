@@ -7,6 +7,14 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+      </profile>
+      <profile name="Annotation profile for zeyuli-job" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../../../softenvironment/apache-maven-3.9.9-bin/repo/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
+        </processorPath>
         <module name="zeyuli-job" />
       </profile>
     </annotationProcessing>

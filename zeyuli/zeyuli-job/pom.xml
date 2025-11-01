@@ -71,12 +71,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
         </dependency>
 
-
-        <!--  Redis依赖 -->
+        <!--          地理位置-->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <groupId>com.maxmind.geoip2</groupId>
+            <artifactId>geoip2</artifactId>
+            <version>4.4.0</version>
         </dependency>
+
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
@@ -103,5 +104,40 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!--     SpringBoot应用打包插件 -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.5.4</version>
+                <!-- 显示的指定主类 -->
+                <!-- mvn clean package spring-boot:repackage -DskipTests-->
+                <!--  打包时指定需要手动指定主类 -->
+                <configuration>
+                    <mainClass>com.zeyuli.Main</mainClass>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.0</version>
+                <configuration>
+                    <!--显示的指定注解处理器路径-->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.38</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <source>14</source>
+                    <target>14</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

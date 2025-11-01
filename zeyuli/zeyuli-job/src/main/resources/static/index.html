@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek 智能旅行规划</title>
+    <link rel="stylesheet" href="reference/all.min.css">
+    <script src="reference/crypto-js.min.js"></script>
+    <!-- 引入 markdown-it 库 -->
+    <script src="reference/markdown-it.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .form-section {
+            flex: 1;
+            padding: 30px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .result-section {
+            flex: 2;
+            padding: 30px;
+            background: white;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .token-input {
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .result-container {
+            height: 500px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        /* 美化 markdown 内容样式 */
+        .markdown-content {
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .markdown-content h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #4facfe;
+            padding-bottom: 10px;
+            margin: 25px 0 15px 0;
+            font-size: 1.8em;
+        }
+
+        .markdown-content h2 {
+            color: #34495e;
+            border-left: 4px solid #4facfe;
+            padding-left: 15px;
+            margin: 20px 0 12px 0;
+            font-size: 1.5em;
+        }
+
+        .markdown-content h3 {
+            color: #5d6d7e;
+            margin: 18px 0 10px 0;
+            font-size: 1.3em;
+        }
+
+        .markdown-content h4 {
+            color: #7f8c8d;
+            margin: 15px 0 8px 0;
+            font-size: 1.1em;
+        }
+
+        .markdown-content p {
+            margin-bottom: 15px;
+            text-align: justify;
+            line-height: 1.7;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        .markdown-content li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .markdown-content ul li {
+            list-style-type: disc;
+        }
+
+        .markdown-content ol li {
+            list-style-type: decimal;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid #4facfe;
+            background: #f8f9fa;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+            color: #555;
+        }
+
+        .markdown-content code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+
+        .markdown-content pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            line-height: 1.4;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: 0.9em;
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .markdown-content th {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .markdown-content td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .markdown-content tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .markdown-content tr:hover {
+            background: #e3f2fd;
+        }
+
+        .markdown-content strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .markdown-content em {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .markdown-content a {
+            color: #4facfe;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .markdown-content a:hover {
+            border-bottom-color: #4facfe;
+            color: #2575fc;
+        }
+
+        .travel-day {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 25px 0 15px 0;
+            font-weight: 600;
+            font-size: 1.2em;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .travel-tip {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+        }
+
+        .travel-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+        }
+
+        .loading {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #dc3545;
+        }
+
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .conversation-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4facfe;
+        }
+
+        .conversation-info h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .info-item {
+            display: flex;
+            margin-bottom: 5px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            min-width: 80px;
+            color: #6c757d;
+        }
+
+        .clear-history {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .clear-history:hover {
+            background: #5a6268;
+        }
+
+        .login-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-toggle {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .login-toggle-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #777;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .login-toggle-btn.active {
+            color: #4facfe;
+        }
+
+        .login-toggle-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #4facfe;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .login-form {
+            display: none;
+        }
+
+        .login-form.active {
+            display: block;
+        }
+
+        .city-select-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .city-select-group .form-control {
+            flex: 1;
+        }
+
+        .token-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            margin-top: 10px;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            .form-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .result-container {
+                height: 400px;
+            }
+
+            .city-select-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌍 DeepSeek 智能旅行规划</h1>
+        <p>基于 AI 的个性化旅行计划生成与优化</p>
+    </div>
+
+    <div class="content">
+        <div class="form-section">
+            <!-- 登录/注册区域 -->
+            <div class="login-section" id="loginSection">
+                <div class="login-toggle">
+                    <button class="login-toggle-btn active" id="login-toggle">登录</button>
+                    <button class="login-toggle-btn" id="register-toggle">注册</button>
+                </div>
+
+                <form class="login-form active" id="login-form">
+                    <div class="form-group">
+                        <label for="login-username">用户名</label>
+                        <input type="text" id="login-username" class="form-control" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">密码</label>
+                        <input type="password" id="login-password" class="form-control" placeholder="请输入密码"
+                               required>
+                    </div>
+                    <button type="submit" class="btn" id="login-btn">
+                        <span class="btn-text">登录</span>
+                    </button>
+                    <div class="message" id="login-message"></div>
+                </form>
+
+                <form class="login-form" id="register-form">
+                    <div class="form-group">
+                        <label for="register-username">用户名</label>
+                        <input type="text" id="register-username" class="form-control" placeholder="请输入用户名"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">密码</label>
+                        <input type="password" id="register-password" class="form-control" placeholder="请输入密码"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">确认密码</label>
+                        <input type="password" id="confirm-password" class="form-control" placeholder="请再次输入密码"
+                               required>
+                    </div>
+                    <button type="submit" class="btn" id="register-btn">
+                        <span class="btn-text">注册</span>
+                    </button>
+                    <div class="message" id="register-message"></div>
+                </form>
+            </div>
+
+            <!-- 行程规划区域 -->
+            <div id="firstConversationForm" class="hidden">
+                <div class="form-group">
+                    <label>出发城市</label>
+                    <div class="city-select-group">
+                        <select id="startProvince" class="form-control">
+                            <option value="">请选择省份</option>
+                        </select>
+                        <select id="startCity" class="form-control">
+                            <option value="">请选择城市</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>目的地城市</label>
+                    <div class="city-select-group">
+                        <select id="endProvince" class="form-control">
+                            <option value="">请选择省份</option>
+                        </select>
+                        <select id="endCity" class="form-control">
+                            <option value="">请选择城市</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="startDate">出发日期</label>
+                    <input type="date" id="startDate" class="form-control" min="">
+                </div>
+
+                <div class="form-group">
+                    <label for="endDate">返回日期</label>
+                    <input type="date" id="endDate" class="form-control" min="">
+                </div>
+
+                <div class="form-group">
+                    <label for="userInput">您的需求 (可选)</label>
+                    <textarea id="userInput" class="form-control" rows="4"
+                              placeholder="例如：请帮我规划一个包含美食体验和文化景点的行程..."></textarea>
+                </div>
+
+                <button id="generateBtn" class="btn">生成旅行计划</button>
+            </div>
+
+            <div id="followupConversationForm" class="hidden">
+                <div class="conversation-info">
+                    <h3>📝 当前行程信息</h3>
+                    <div class="info-item">
+                        <span class="info-label">出发地:</span>
+                        <span id="currentStartCity">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">目的地:</span>
+                        <span id="currentEndCity">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">出发日期:</span>
+                        <span id="currentStartDate">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">返回日期:</span>
+                        <span id="currentEndDate">-</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="followupUserInput">您的修改要求</label>
+                    <textarea id="followupUserInput" class="form-control" rows="6"
+                              placeholder="例如：请帮我把行程调整为更轻松一些，减少每天的景点数量，增加休息时间..."></textarea>
+                </div>
+
+                <button id="modifyBtn" class="btn">修改行程</button>
+                <button id="clearHistoryBtn" class="btn clear-history">开始新的对话</button>
+            </div>
+
+            <div id="tokenSection" class="hidden">
+                <div class="form-group">
+                    <label>欢迎您，<span id="currentUsername"></span></label>
+                    <div class="token-display">为您的账户安全，请妥善保管您的登录凭证。</div>
+                </div>
+                <button id="logoutBtn" class="btn clear-history" style="margin-top: 10px;">退出登录</button>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h2>旅行计划结果</h2>
+            <div class="result-container">
+                <div id="resultContent" class="markdown-content">
+                    <p class="loading">请先登录以使用旅行规划功能</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 初始化 markdown 解析器
+    const md = window.markdownit({
+        html: true,
+        linkify: true,
+        typographer: true,
+        breaks: true
+    });
+
+    // 全局变量
+    let currentToken = '';
+    let cityData = {};
+    let currentUsername = '';
+    let currentConversation = {
+        isFirst: true,
+        startCity: '',
+        endCity: '',
+        startDate: '',
+        endDate: ''
+    };
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        checkAutoLogin();
+        loadCityData();
+        setupEventListeners();
+        setupDateConstraints();
+    });
+
+    function checkAutoLogin() {
+        const savedToken = localStorage.getItem('token');
+        const savedUsername = localStorage.getItem('username');
+
+        if (savedToken && savedUsername) {
+            currentToken = savedToken;
+            currentUsername = savedUsername;
+            showTravelPlanningInterface();
+        } else {
+            // 如果没有token，显示登录界面
+            document.getElementById('loginSection').classList.remove('hidden');
+        }
+    }
+
+    // 设置事件监听器
+    function setupEventListeners() {
+        // 登录/注册切换
+        document.getElementById('login-toggle').addEventListener('click', () => toggleLoginForm('login'));
+        document.getElementById('register-toggle').addEventListener('click', () => toggleLoginForm('register'));
+
+        // 表单提交
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('register-form').addEventListener('submit', handleRegister);
+
+        // 省份选择变化
+        document.getElementById('startProvince').addEventListener('change', (e) => updateCitySelect('start', e.target.value));
+        document.getElementById('endProvince').addEventListener('change', (e) => updateCitySelect('end', e.target.value));
+
+        // 行程规划按钮
+        document.getElementById('generateBtn').addEventListener('click', () => generateTravelPlan(true));
+        document.getElementById('modifyBtn').addEventListener('click', () => generateTravelPlan(false));
+        document.getElementById('clearHistoryBtn').addEventListener('click', clearConversationHistory);
+
+        // 退出登录按钮
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    }
+
+    // 加载城市数据
+    async function loadCityData() {
+        try {
+            const response = await fetch('city.json');
+            cityData = await response.json();
+            populateProvinceSelectors();
+        } catch (error) {
+            console.error('加载城市数据失败:', error);
+        }
+    }
+
+    // 填充省份选择器
+    function populateProvinceSelectors() {
+        const startProvince = document.getElementById('startProvince');
+        const endProvince = document.getElementById('endProvince');
+
+        // 清空现有选项
+        startProvince.innerHTML = '<option value="">请选择省份</option>';
+        endProvince.innerHTML = '<option value="">请选择省份</option>';
+
+        // 添加直辖市
+        cityData.直辖市.forEach(city => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = city;
+            startProvince.appendChild(option.cloneNode(true));
+            endProvince.appendChild(option);
+        });
+
+        // 添加省份
+        Object.keys(cityData.省).forEach(province => {
+            const option = document.createElement('option');
+            option.value = province;
+            option.textContent = province;
+            startProvince.appendChild(option.cloneNode(true));
+            endProvince.appendChild(option);
+        });
+
+        // 添加自治区
+        Object.keys(cityData.自治区).forEach(province => {
+            const option = document.createElement('option');
+            option.value = province;
+            option.textContent = province;
+            startProvince.appendChild(option.cloneNode(true));
+            endProvince.appendChild(option);
+        });
+
+        // 添加特别行政区
+        cityData.特别行政区.forEach(city => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = city;
+            startProvince.appendChild(option.cloneNode(true));
+            endProvince.appendChild(option);
+        });
+    }
+
+    // 切换登录/注册表单
+    function toggleLoginForm(formType) {
+        document.getElementById('login-toggle').classList.toggle('active', formType === 'login');
+        document.getElementById('register-toggle').classList.toggle('active', formType === 'register');
+        document.getElementById('login-form').classList.toggle('active', formType === 'login');
+        document.getElementById('register-form').classList.toggle('active', formType === 'register');
+    }
+
+    // 更新城市选择器
+    function updateCitySelect(type, province) {
+        const citySelect = document.getElementById(`${type}City`);
+        citySelect.innerHTML = '<option value="">请选择城市</option>';
+
+        if (!province) return;
+
+        let cities = [];
+
+        // 查找对应的城市列表
+        if (cityData.直辖市.includes(province)) {
+            cities = [province]; // 直辖市本身就是城市
+        } else if (cityData.省[province]) {
+            cities = cityData.省[province];
+        } else if (cityData.自治区[province]) {
+            cities = cityData.自治区[province];
+        } else if (cityData.特别行政区.includes(province)) {
+            cities = [province]; // 特别行政区本身就是城市
+        }
+
+        cities.forEach(city => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = city;
+            citySelect.appendChild(option);
+        });
+    }
+
+    // 设置日期约束
+    function setupDateConstraints() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').min = today;
+        document.getElementById('endDate').min = today;
+
+        document.getElementById('startDate').addEventListener('change', function () {
+            const endDate = document.getElementById('endDate');
+            endDate.min = this.value;
+            if (endDate.value && endDate.value < this.value) {
+                endDate.value = this.value;
+            }
+        });
+    }
+
+    // SHA256加密
+    function sha256(password) {
+        return CryptoJS.SHA256(password).toString();
+    }
+
+    // 显示消息
+    function showMessage(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        element.textContent = message;
+        element.className = 'message ' + type;
+        setTimeout(() => {
+            element.className = 'message';
+        }, 5000);
+    }
+
+    // 设置按钮加载状态
+    function setButtonLoading(buttonId, isLoading) {
+        const button = document.getElementById(buttonId);
+        const btnText = button.querySelector('.btn-text');
+        if (isLoading) {
+            button.disabled = true;
+            btnText.innerHTML = '<span class="loading"></span>处理中...';
+        } else {
+            button.disabled = false;
+            btnText.textContent = buttonId === 'login-btn' ? '登录' : '注册';
+        }
+    }
+
+    // 处理登录
+    async function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        if (!username || !password) {
+            showMessage('login-message', '请输入用户名和密码', 'error');
+            return;
+        }
+
+        setButtonLoading('login-btn', true);
+
+        try {
+            const response = await fetch('user/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userName: username,
+                    password: sha256(password)
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.statusCode === 200) {
+                currentToken = result.data.token;
+                currentUsername = username;
+
+                // 保存到localStorage
+                localStorage.setItem('token', currentToken);
+                localStorage.setItem('username', currentUsername);
+
+                showMessage('login-message', '登录成功！', 'success');
+                showTravelPlanningInterface();
+            } else {
+                showMessage('login-message', result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('login-message', '网络错误，请稍后重试', 'error');
+        } finally {
+            setButtonLoading('login-btn', false);
+        }
+    }
+
+    // 处理注册
+    async function handleRegister(e) {
+        e.preventDefault();
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        if (!username || !password || !confirmPassword) {
+            showMessage('register-message', '请填写所有字段', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showMessage('register-message', '两次输入的密码不一致', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            showMessage('register-message', '密码长度至少为6位', 'error');
+            return;
+        }
+
+        setButtonLoading('register-btn', true);
+
+        try {
+            const response = await fetch('user/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userName: username,
+                    password: sha256(password)
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.statusCode === 200) {
+                showMessage('register-message', '注册成功！请登录', 'success');
+                setTimeout(() => {
+                    toggleLoginForm('login');
+                    document.getElementById('login-username').value = username;
+                }, 2000);
+            } else {
+                showMessage('register-message', result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('register-message', '网络错误，请稍后重试', 'error');
+        } finally {
+            setButtonLoading('register-btn', false);
+        }
+    }
+
+    // 显示旅行规划界面
+    function showTravelPlanningInterface() {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('firstConversationForm').classList.remove('hidden');
+        document.getElementById('tokenSection').classList.remove('hidden');
+        document.getElementById('currentUsername').textContent = currentUsername;
+        document.getElementById('resultContent').innerHTML = '<p class="loading">等待生成旅行计划...</p>';
+    }
+
+    // 生成旅行计划
+    async function generateTravelPlan(isFirstRequest) {
+        let startCity, endCity, startDate, endDate, userInput;
+
+        if (isFirstRequest) {
+            const startProvince = document.getElementById('startProvince').value;
+            const startCitySelect = document.getElementById('startCity').value;
+            const endProvince = document.getElementById('endProvince').value;
+            const endCitySelect = document.getElementById('endCity').value;
+
+            startCity = startCitySelect || startProvince;
+            endCity = endCitySelect || endProvince;
+            startDate = document.getElementById('startDate').value;
+            endDate = document.getElementById('endDate').value;
+            userInput = document.getElementById('userInput').value;
+
+            // 验证必填字段
+            if (!startCity || !endCity || !startDate || !endDate) {
+                alert('请填写所有必填字段！');
+                return;
+            }
+
+            // 保存会话信息
+            currentConversation = {
+                isFirst: false,
+                startCity,
+                endCity,
+                startDate,
+                endDate
+            };
+
+            // 更新显示当前行程信息
+            updateConversationInfo();
+
+            // 切换表单显示
+            document.getElementById('firstConversationForm').classList.add('hidden');
+            document.getElementById('followupConversationForm').classList.remove('hidden');
+        } else {
+            startCity = currentConversation.startCity;
+            endCity = currentConversation.endCity;
+            startDate = currentConversation.startDate;
+            endDate = currentConversation.endDate;
+            userInput = document.getElementById('followupUserInput').value;
+
+            if (!userInput.trim()) {
+                alert('请输入修改要求！');
+                return;
+            }
+        }
+
+        // 显示加载状态
+        const resultContent = document.getElementById('resultContent');
+        resultContent.innerHTML = '<p class="loading">🚀 AI 正在为您精心规划旅行路线，请稍候...</p>';
+
+        try {
+            // 构建请求URL
+            const baseUrl = '/deekseek/planItinerary';
+            const params = new URLSearchParams({
+                startCity,
+                endCity,
+                startDate,
+                endDate,
+                token: currentToken,
+                userInput: userInput || ''
+            });
+
+            const url = `${baseUrl}?${params}`;
+
+            // 发送请求并处理流式响应
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error('请求失败');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let fullContent = '';
+
+            // 清空内容，准备显示流式内容
+            resultContent.innerHTML = '';
+
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, {stream: true});
+                fullContent += chunk;
+
+                // 使用 markdown 渲染内容
+                const renderedContent = md.render(fullContent);
+                resultContent.innerHTML = renderedContent;
+                resultContent.scrollTop = resultContent.scrollHeight;
+            }
+
+            // 最终渲染，确保所有内容都正确显示
+            const finalRenderedContent = md.render(fullContent);
+            resultContent.innerHTML = finalRenderedContent;
+
+            // 清空修改输入框
+            if (!isFirstRequest) {
+                document.getElementById('followupUserInput').value = '';
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            resultContent.innerHTML = `<div class="error">❌ 生成旅行计划时出错：${error.message}</div>`;
+        }
+    }
+
+    // 更新会话信息显示
+    function updateConversationInfo() {
+        document.getElementById('currentStartCity').textContent = currentConversation.startCity;
+        document.getElementById('currentEndCity').textContent = currentConversation.endCity;
+        document.getElementById('currentStartDate').textContent = formatDate(currentConversation.startDate);
+        document.getElementById('currentEndDate').textContent = formatDate(currentConversation.endDate);
+    }
+
+    // 格式化日期
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    // 清除会话历史
+    function clearConversationHistory() {
+        currentConversation.isFirst = true;
+        document.getElementById('firstConversationForm').classList.remove('hidden');
+        document.getElementById('followupConversationForm').classList.add('hidden');
+        document.getElementById('resultContent').innerHTML = '<p class="loading">等待生成旅行计划...</p>';
+
+        // 重置表单
+        document.getElementById('startProvince').value = '';
+        document.getElementById('startCity').innerHTML = '<option value="">请选择城市</option>';
+        document.getElementById('endProvince').value = '';
+        document.getElementById('endCity').innerHTML = '<option value="">请选择城市</option>';
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('userInput').value = '';
+    }
+
+    // 处理退出登录
+    function handleLogout() {
+        // 清除本地存储
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+
+        // 重置状态
+        currentToken = '';
+        currentUsername = '';
+        currentConversation = {
+            isFirst: true,
+            startCity: '',
+            endCity: '',
+            startDate: '',
+            endDate: ''
+        };
+
+        // 重置界面
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('firstConversationForm').classList.add('hidden');
+        document.getElementById('followupConversationForm').classList.add('hidden');
+        document.getElementById('tokenSection').classList.add('hidden');
+
+        // 重置表单
+        clearConversationHistory();
+
+        // 清空登录表单
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+
+        document.getElementById('resultContent').innerHTML = '<p class="loading">请先登录以使用旅行规划功能</p>';
+    }
+</script>
+</body>
+</html>

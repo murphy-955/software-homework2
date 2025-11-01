@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <!--directBy: 李泽聿&黄明杰-->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ai旅游助手登录</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+        <link rel="stylesheet" href="reference/all.min.css">
+        <script src="reference/crypto-js.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -296,6 +297,7 @@
 </div>
 
 <script>
+    console.log("directBy 李泽聿&黄明杰");
     // 切换登录和注册表单
     const loginToggle = document.getElementById('login-toggle');
     const registerToggle = document.getElementById('register-toggle');
@@ -380,8 +382,12 @@
             if (result.statusCode === 200) {
                 showMessage(message, '登录成功！正在跳转...', 'success');
                 // 实际应用中保存token并跳转
-                // localStorage.setItem('token', result.data.token);
-                // window.location.href = '/dashboard';
+                localStorage.setItem('token', result.data.token);
+                localStorage.setItem('username', username);
+
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
             } else {
                 showMessage(message, result.message, 'error');
             }

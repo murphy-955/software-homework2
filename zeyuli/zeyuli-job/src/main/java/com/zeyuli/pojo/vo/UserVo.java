@@ -1,6 +1,7 @@
 package com.zeyuli.pojo.vo;
 
 
+import com.zeyuli.enm.LoginTypeEnum;
 import lombok.Data;
 
 /**
@@ -13,4 +14,5 @@ import lombok.Data;
 public class UserVo {
     private String userName;
     private String password;
+    private LoginTypeEnum loginType;
 }

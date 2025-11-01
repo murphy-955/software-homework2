@@ -1,6 +1,8 @@
 package com.zeyuli.service;
 
 
+import com.zeyuli.pojo.vo.UserVo;
+
 import java.util.Map;
 
 /**
@@ -11,7 +13,7 @@ import java.util.Map;
  */
 
 public interface UserService {
-    Map<String, Object> login(String username, String password);
+    Map<String, Object> login(UserVo vo);
 
     Map<String, Object> register(String username, String password);
 }

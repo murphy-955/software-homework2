@@ -3,14 +3,13 @@ package com.zeyuli.service.impl;
 
 import com.zeyuli.enm.StatusCodeEnum;
 import com.zeyuli.mappers.UserMapper;
-import com.zeyuli.pojo.User;
+import com.zeyuli.pojo.vo.UserVo;
 import com.zeyuli.service.UserService;
-import com.zeyuli.util.JwtUtil;
+import com.zeyuli.strategy.login.LoginFactory;
 import com.zeyuli.util.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,13 +25,12 @@ public class UserServiceImpl implements UserService {
     private UserMapper userMapper;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private LoginFactory loginFactory;
 
     /**
      * 登录
      *
-     * @param username 用户名
-     * @param password 用户密码
+     * @param vo 用户信息{@link UserVo}
      * @return : java.util.Map<java.lang.String,java.lang.Object> 成功返回：<pre>
      *     {@code
      *      {
@@ -58,23 +56,22 @@ public class UserServiceImpl implements UserService {
      * @since : 2025-10-21 21:48
      */
     @Override
-    public Map<String, Object> login(String username, String password) {
-        User res = userMapper.login(username, password);
-        if (res != null) {
-            System.out.println(res);
-            String token = jwtUtil.createToken(res.getId(), res.getUserName(), res.getPassword());
-            HashMap<String, Object> data = new HashMap<>();
-            data.put("token", token);
-            return Response.success(data);
-        }
-        return Response.failed(StatusCodeEnum.LOGIN_FAILED);
+    public Map<String, Object> login(UserVo vo) {
+//        User res = userMapper.login(username, password);
+//        if (res != null) {
+//            System.out.println(res);
+//            String token = jwtUtil.createToken(res.getId(), res.getUserName(), res.getPassword());
+//            HashMap<String, Object> data = new HashMap<>();
+//            data.put("token", token);
+//            return Response.success(data);
+//        }
+//        return Response.failed(StatusCodeEnum.LOGIN_FAILED);
+        return loginFactory.login(String.valueOf(vo.getLoginType())).login(vo);
     }
 
     /**
      * 注册
      *
-     * @author : 李泽聿
-     * @since : 2025-10-22 08:04
      * @param username 用户名
      * @param password 密码
      * @return : java.util.Map<java.lang.String,java.lang.Object>成功返回：<pre>
@@ -86,6 +83,8 @@ public class UserServiceImpl implements UserService {
      *     }
      * </pre>
      * <br>
+     * @author : 李泽聿
+     * @since : 2025-10-22 08:04
      */
     @Override
     public Map<String, Object> register(String username, String password) {
