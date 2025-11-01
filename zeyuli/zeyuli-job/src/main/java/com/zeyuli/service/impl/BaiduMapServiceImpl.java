@@ -16,7 +16,7 @@ import java.util.List;
  * @since 2025-11-01 10:53
  */
 
-public class BaiduServiceImpl implements MapService {
+public class BaiduMapServiceImpl implements MapService {
     @Override
     public Point getMapCenter(String location) {
         return null;
