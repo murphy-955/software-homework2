@@ -1,5 +1,5 @@
 server:
-  port: 10086
+  port: 8080
 
 spring:
   ai:
@@ -25,7 +25,7 @@ mybatis:
   configuration:
     auto-mapping-behavior: full
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   type-aliases-package: com.zeyuli.pojo
   mapper-locations: classpath:/mappers/*.xml
 

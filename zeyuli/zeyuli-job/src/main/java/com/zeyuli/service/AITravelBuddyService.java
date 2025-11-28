@@ -2,6 +2,7 @@ package com.zeyuli.service;
 
 import com.zeyuli.pojo.ChatMessage;
 import com.zeyuli.pojo.vo.ItineraryPlanVO;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;

@@ -32,7 +32,8 @@ public class LoginByPassword implements LoginStrategyInterface {
     @Override
     public Map<String, Object> login(UserVo vo) {
 
-        User res = userMapper.login(vo.getUserName(), vo.getPassword());
+        User res = userMapper.login(vo.getUsername(), vo.getPassword());
+        System.out.println(res);
         if (res != null) {
             System.out.println(res);
             String token = jwtUtil.createToken(res.getId(), res.getUserName(), res.getPassword());

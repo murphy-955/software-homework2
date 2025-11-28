@@ -3,6 +3,7 @@ package com.zeyuli.service;
 import com.zeyuli.pojo.bo.POI;
 import com.zeyuli.pojo.bo.Route;
 import com.zeyuli.pojo.vo.ItineraryPlanVO;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Map;
  * @author 李泽聿
  * @since 2025-11-01
  */
+@Service
 public interface ItineraryService {
     
     /**

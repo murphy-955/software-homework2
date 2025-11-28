@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 高德地图服务实现
@@ -24,11 +23,11 @@ import java.util.Objects;
  * @author 李泽聿
  * @since 2025-11-01
  */
-@Service
+@Service("amapMapService")
 @Slf4j
 public class AmapMapServiceImpl implements MapService {
 
-    private static final String KEY = "your_amap_api_key"; // 需要替换为实际的高德地图API密钥
+    private static final String KEY = "0f874a8f530e4c8b18ed3b197e682be6"; // 需要替换为实际的高德地图API密钥
     private static final String BASE_URL = "https://restapi.amap.com/v3";
     private static final String DIRECTION_URL = "https://restapi.amap.com/v3/direction";
     private static final String WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";

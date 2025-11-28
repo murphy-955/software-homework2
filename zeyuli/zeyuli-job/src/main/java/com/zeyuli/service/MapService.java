@@ -4,6 +4,7 @@ import com.zeyuli.pojo.bo.POI;
 import com.zeyuli.pojo.bo.Point;
 import com.zeyuli.pojo.bo.Location;
 import com.zeyuli.pojo.bo.Route;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Map;
  * @author 李泽聿
  * @since 2025-11-01 10:32
  */
+@Service
 public interface MapService {
     /**
      * 获取地图中心点

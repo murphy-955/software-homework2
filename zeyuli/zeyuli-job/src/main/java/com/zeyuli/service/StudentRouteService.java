@@ -1,6 +1,8 @@
 package com.zeyuli.service;
 
 import com.zeyuli.pojo.bo.StudentRoute;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +13,7 @@ import java.util.Map;
  * @author 李泽聿
  * @since 2025-11-01
  */
+@Service
 public interface StudentRouteService {
     
     /**
