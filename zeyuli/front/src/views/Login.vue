@@ -66,6 +66,22 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../api/user'
 
+// SHA256加密函数
+const sha256 = async (message) => {
+  // 将字符串转换为Uint8Array
+  const encoder = new TextEncoder()
+  const data = encoder.encode(message)
+  
+  // 使用SubtleCrypto API进行SHA-256哈希
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  
+  // 将ArrayBuffer转换为十六进制字符串
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  
+  return hashHex
+}
+
 const router = useRouter()
 
 // 登录表单数据
@@ -85,13 +101,33 @@ const sendVerifyCode = () => {
 // 处理登录
 const handleLogin = async () => {
   try {
-    const response = await login(loginForm.value)
-    // 保存token到localStorage
-    localStorage.setItem('token', response.token || 'mock-token')
-    // 跳转到首页
-    router.push('/home')
+    // 对密码进行SHA256加密
+    const encryptedPassword = await sha256(loginForm.value.password)
+    
+    // 创建登录请求数据，使用加密后的密码
+    const loginData = {
+      ...loginForm.value,
+      password: encryptedPassword
+    }
+    
+    const response = await login(loginData)
+    // 检查响应数据结构
+    if (response && response.token) {
+      // 保存token到localStorage
+      localStorage.setItem('token', response.token)
+      // 跳转到首页
+      router.push('/home')
+    } else if (response && response.data && response.data.token) {
+      // 兼容不同的响应格式
+      localStorage.setItem('token', response.data.token)
+      router.push('/home')
+    } else {
+      throw new Error('登录失败：未返回有效的token')
+    }
   } catch (error) {
     console.error('登录失败:', error)
+    // 可以添加错误提示，比如使用Element Plus的Message组件
+    alert('登录失败：' + (error.message || '请检查用户名和密码'))
   }
 }
 </script>

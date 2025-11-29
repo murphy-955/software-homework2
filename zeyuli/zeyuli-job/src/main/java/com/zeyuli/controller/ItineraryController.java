@@ -20,6 +20,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/itinerary")
+// todo 仅测试用
+@CrossOrigin
 public class ItineraryController {
     
     @Autowired

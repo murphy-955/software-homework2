@@ -19,6 +19,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/personality-test")
+// todo 仅测试用
+@CrossOrigin
 public class PersonalityTestController {
     
     @Autowired
