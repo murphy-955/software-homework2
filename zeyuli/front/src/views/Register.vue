@@ -1,372 +1,172 @@
 <template>
-  <div class="container">
-    <div class="welcome-section">
-      <h1>欢迎使用我们的平台</h1>
-      <p>注册账户以享受我们提供的所有功能和服务。我们致力于为您提供最佳的用户体验。</p>
-      <ul class="features">
-        <li><i class="fas fa-check-circle"></i> 安全可靠的身份验证</li>
-        <li><i class="fas fa-check-circle"></i> 个性化用户体验</li>
-        <li><i class="fas fa-check-circle"></i> 为您提供旅游攻略、景点推荐、交通工具查询等一站式ai服务的平台</li>
-      </ul>
-    </div>
-
-    <div class="form-section">
-      <div class="form-container">
-        <div class="form-toggle">
-          <button class="toggle-btn" @click="goToLogin">登录</button>
-          <button class="toggle-btn active">注册</button>
-        </div>
-
-        <form class="form" @submit.prevent="handleRegister">
-          <h2>创建新账户</h2>
-          <div class="input-group">
-            <label for="username">用户名</label>
-            <input 
-              type="text" 
-              id="username" 
-              v-model="username" 
-              placeholder="请输入用户名" 
-              required 
-            >
-          </div>
-          <div class="input-group">
-            <label for="password">密码</label>
-            <input 
-              type="password" 
-              id="password" 
-              v-model="password" 
-              placeholder="请输入密码" 
-              required 
-            >
-          </div>
-          <div class="input-group">
-            <label for="confirmPassword">确认密码</label>
-            <input 
-              type="password" 
-              id="confirmPassword" 
-              v-model="confirmPassword" 
-              placeholder="请再次输入密码" 
-              required 
-            >
-          </div>
-          <button 
-            type="submit" 
-            class="submit-btn" 
-            :disabled="isLoading"
-          >
-            <span v-if="isLoading" class="loading"></span>
-            <span>{{ isLoading ? '处理中...' : '注册' }}</span>
-          </button>
-          <div v-if="message" :class="['message', messageType]">
-            {{ message }}
-          </div>
-        </form>
+  <div class="register-container">
+    <div class="register-box">
+      <div class="flex items-center mb-6">
+        <button type="button" class="btn btn-text" @click="$router.push('/login')">
+          <span class="icon">←</span>返回登录
+        </button>
+        <h2 class="text-2xl font-bold ml-4">注册账户</h2>
       </div>
+      <form @submit.prevent="handleRegister">
+        <div class="form-item grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">用户名</label>
+            <input 
+              type="text"
+              v-model="registerForm.username"
+              placeholder="用户名"
+              required 
+              class="input"
+            />
+          </div>
+          <div>
+            <label class="form-label">验证码</label>
+            <div class="flex gap-2">
+              <input 
+                type="text" 
+                v-model="registerForm.verifyCode" 
+                placeholder="验证码" 
+                required 
+                class="input flex-1"
+              />
+              <button type="button" class="btn btn-secondary" @click="sendVerifyCode">发送</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-item grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">设置密码</label>
+            <input 
+              type="password" 
+              v-model="registerForm.password" 
+              placeholder="设置密码" 
+              required 
+              class="input"
+            />
+          </div>
+          <div>
+            <label class="form-label">确认密码</label>
+            <input 
+              type="password" 
+              v-model="registerForm.confirmPassword" 
+              placeholder="确认密码" 
+              required 
+              class="input"
+            />
+          </div>
+        </div>
+        <div class="form-item">
+          <label class="form-label">昵称</label>
+          <input 
+            type="text" 
+            v-model="registerForm.nickname" 
+            placeholder="昵称" 
+            required 
+            class="input"
+          />
+        </div>
+        <div class="form-item">
+          <label class="form-label">选择身份</label>
+          <div class="flex gap-6 mt-2">
+            <label class="flex items-center gap-2">
+              <input type="radio" name="identity" value="student" v-model="registerForm.identity" class="mr-1"/>
+              学生
+            </label>
+            <label class="flex items-center gap-2">
+              <input type="radio" name="identity" value="worker" v-model="registerForm.identity" class="mr-1"/>
+              上班族
+            </label>
+            <label class="flex items-center gap-2">
+              <input type="radio" name="identity" value="other" v-model="registerForm.identity" class="mr-1"/>
+              其他
+            </label>
+          </div>
+        </div>
+        <div class="form-item flex items-center gap-2 text-sm">
+          <input type="checkbox" id="agree-terms" v-model="registerForm.agreeTerms" required/>
+          <label for="agree-terms" class="text-gray-600">
+            我同意
+            <span class="text-blue-500 cursor-pointer">服务协议</span>
+            和
+            <span class="text-blue-500 cursor-pointer">隐私政策</span>
+          </label>
+        </div>
+        <div class="form-item flex gap-4">
+          <button type="button" class="btn btn-secondary flex-1" @click="$router.push('/login')">返回登录</button>
+          <button type="submit" class="btn btn-primary flex-1">注册</button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
 
-<script>
-import { authAPI } from '../utils/api';
-import CryptoJS from 'crypto-js';
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { register } from '../api/user'
+// todo 待完善
+const router = useRouter()
 
-export default {
-  name: 'Register',
-  data() {
-    return {
-      username: '',
-      password: '',
-      confirmPassword: '',
-      isLoading: false,
-      message: '',
-      messageType: ''
-    };
-  },
-  methods: {
-    // 密码SHA256加密函数
-    sha256(password) {
-      return CryptoJS.SHA256(password).toString();
-    },
+// 注册表单数据
+const registerForm = ref({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  nickname: '',
+  identity: 'student',
+  verifyCode: '',
+  agreeTerms: false
+})
 
-    // 显示消息
-    showMessage(message, type) {
-      this.message = message;
-      this.messageType = type;
-      setTimeout(() => {
-        this.message = '';
-      }, 5000);
-    },
+// 发送验证码
+const sendVerifyCode = () => {
+  // 这里可以添加发送验证码的逻辑
+  console.log('发送验证码')
+}
 
-    // 跳转到登录页面
-    goToLogin() {
-      this.$router.push('/login');
-    },
-
-    // 处理注册
-    async handleRegister() {
-      // 表单验证
-      if (!this.username || !this.password || !this.confirmPassword) {
-        this.showMessage('请填写所有字段', 'error');
-        return;
-      }
-
-      if (this.password !== this.confirmPassword) {
-        this.showMessage('两次输入的密码不一致', 'error');
-        return;
-      }
-
-      if (this.password.length < 6) {
-        this.showMessage('密码长度至少为6位', 'error');
-        return;
-      }
-
-      this.isLoading = true;
-
-      try {
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 调用注册API
-        const response = await authAPI.register({
-          userName: this.username,
-          password: this.sha256(this.password)
-        });
-
-        // 由于是模拟环境，直接返回成功
-        // 实际环境中应该根据API返回判断
-        this.showMessage('注册成功！正在跳转到登录页面...', 'success');
-        
-        // 跳转到登录页面
-        setTimeout(() => {
-          this.goToLogin();
-        }, 2000);
-      } catch (error) {
-        console.error('注册失败:', error);
-        this.showMessage('注册失败，请稍后重试', 'error');
-      } finally {
-        this.isLoading = false;
-      }
+// 处理注册
+const handleRegister = async () => {
+  try {
+    // 验证密码是否一致
+    if (registerForm.value.password !== registerForm.value.confirmPassword) {
+      console.error('两次输入的密码不一致')
+      return
     }
+    
+    // 调用注册接口
+    const response = await register({
+      username: registerForm.value.username,
+      password: registerForm.value.password
+    })
+    
+    // 注册成功后跳转到登录页
+    router.push('/login')
+  } catch (error) {
+    console.error('注册失败:', error)
   }
-};
+}
 </script>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.container {
-  width: 100%;
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-  border-radius: 20px;
-  overflow: hidden;
+  background: linear-gradient(to bottom right, #e6f7ff, #f0f5ff);
 }
 
-.welcome-section {
-  flex: 1;
-  background: linear-gradient(135deg, rgba(106, 17, 203, 0.9), rgba(37, 117, 252, 0.9));
-  color: white;
+.register-box {
+  max-width: 560px;
+  width: 100%;
   padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.welcome-section h1 {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-}
-
-.welcome-section p {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin-bottom: 30px;
-}
-
-.features {
-  list-style: none;
-}
-
-.features li {
-  margin-bottom: 15px;
-  display: flex;
-  align-items: center;
-}
-
-.features i {
-  margin-right: 10px;
-  font-size: 1.2rem;
-}
-
-.form-section {
-  flex: 1;
   background: white;
-  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.form-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-toggle {
-  display: flex;
-  margin-bottom: 30px;
-  border-bottom: 1px solid #eee;
-}
-
-.toggle-btn {
-  padding: 10px 20px;
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #777;
-  cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
-}
-
-.toggle-btn.active {
-  color: #2575fc;
-}
-
-.toggle-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: #2575fc;
-  border-radius: 3px 3px 0 0;
-}
-
-.form {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.form h2 {
-  margin-bottom: 25px;
-  color: #333;
-}
-
-.input-group {
-  margin-bottom: 20px;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #555;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s;
-}
-
-.input-group input:focus {
-  border-color: #2575fc;
-  box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.2);
-  outline: none;
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #6a11cb, #2575fc);
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(37, 117, 252, 0.4);
-}
-
-.submit-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.submit-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.message {
-  margin-top: 20px;
-  padding: 12px;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 500;
-}
-
-.message.success {
-  background: #e7f7ef;
-  color: #2ecc71;
-}
-
-.message.error {
-  background: #fde8e8;
-  color: #e74c3c;
-}
-
-.loading {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, .3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
-  margin-right: 10px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-  }
-
-  .welcome-section {
-    padding: 30px;
-  }
-
-  .form-section {
-    padding: 30px;
-  }
+/* 图标样式 */
+.icon {
+  font-size: 16px;
 }
 </style>

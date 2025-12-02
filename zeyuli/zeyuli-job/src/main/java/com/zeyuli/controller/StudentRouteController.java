@@ -18,6 +18,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/student-route")
+// todo 仅测试用
+@CrossOrigin
 public class StudentRouteController {
 
     @Autowired

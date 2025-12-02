@@ -1,669 +1,216 @@
 <template>
-  <div class="home-container">
-    <nav class="navbar">
-      <div class="navbar-brand">旅行助手</div>
-      <div class="navbar-menu">
-        <a href="/" class="nav-item active">首页</a>
-        <a href="/map" class="nav-item">地图服务</a>
-        <a href="/student" class="nav-item">学生线路</a>
+  <div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="p-6 border-b">
+        <div class="font-bold text-blue-600 text-xl">TravelMate</div>
       </div>
-      <div class="navbar-user">
-        <span class="username">{{ username }}</span>
-        <button class="logout-btn" @click="handleLogout">退出登录</button>
-      </div>
-    </nav>
-
-    <div class="main-content">
-      <div class="left-panel">
-        <div class="plan-form">
-          <h2>行程规划</h2>
-          <form @submit.prevent="generatePlan" class="plan-form-content">
-            <div class="form-group">
-              <label for="departure">出发城市</label>
-              <select id="departure" v-model="planForm.departure" required>
-                <option value="" disabled>选择出发城市</option>
-                <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="destination">目的城市</label>
-              <select id="destination" v-model="planForm.destination" required>
-                <option value="" disabled>选择目的城市</option>
-                <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="startDate">开始日期</label>
-              <input type="date" id="startDate" v-model="planForm.startDate" required>
-            </div>
-            <div class="form-group">
-              <label for="endDate">结束日期</label>
-              <input type="date" id="endDate" v-model="planForm.endDate" required>
-            </div>
-            <div class="form-group">
-              <label for="requirements">旅行需求</label>
-              <textarea id="requirements" v-model="planForm.requirements" placeholder="请描述您的旅行偏好、兴趣点、预算等信息" rows="4"></textarea>
-            </div>
-            <button type="submit" class="generate-btn" :disabled="isGenerating">
-              {{ isGenerating ? '生成中...' : '生成行程' }}
-            </button>
-          </form>
+      <nav>
+        <div class="sidebar-item active" @click="navigateTo('/home')">
+          <span class="icon">🏠</span>
+          <span>首页</span>
         </div>
-
-        <div v-if="currentSession && currentSession.session_id" class="chat-form">
-          <h3>继续完善行程</h3>
-          <form @submit.prevent="sendMessage" class="chat-form-content">
-            <textarea v-model="chatMessage" placeholder="输入您的问题或需求" rows="2"></textarea>
-            <button type="submit" class="send-btn" :disabled="!chatMessage.trim() || isSending">
-              {{ isSending ? '发送中...' : '发送' }}
-            </button>
-          </form>
+        <div class="sidebar-item" @click="navigateTo('/result')">
+          <span class="icon">📅</span>
+          <span>我的行程</span>
         </div>
-      </div>
+        <div class="sidebar-item" @click="navigateTo('/map')">
+          <span class="icon">🗺️</span>
+          <span>地图视图</span>
+        </div>
+        <div class="sidebar-item" @click="navigateTo('/budget')">
+          <span class="icon">💰</span>
+          <span>预算管理</span>
+        </div>
+        <div class="sidebar-item" @click="navigateTo('/profile')">
+          <span class="icon">👤</span>
+          <span>个人中心</span>
+        </div>
+      </nav>
+    </aside>
 
-      <div class="right-panel">
-        <div class="plan-result">
-          <div v-if="!currentSession || !planGenerated" class="empty-state">
-            <h3>欢迎使用旅行助手</h3>
-            <p>请在左侧填写您的旅行信息，生成个性化的旅行计划</p>
-          </div>
-          
-          <div v-else-if="planGenerated" class="result-content">
-            <div class="result-header">
-              <h3>旅行计划</h3>
-              <div class="session-info">
-                <span>会话ID: {{ currentSession.session_id }}</span>
-                <button class="clear-btn" @click="clearHistory">清除历史</button>
-              </div>
-            </div>
-            
-            <div class="messages-container">
-              <div v-for="msg in messages" :key="msg.id" class="message-wrapper">
-                <div v-if="msg.type === 'user'" class="user-message">
-                  <div class="message-header">
-                    <span class="user-label">您</span>
-                    <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
-                  </div>
-                  <div class="message-content">
-                    {{ msg.content }}
-                  </div>
-                </div>
-                <div v-else-if="msg.type === 'assistant'" class="assistant-message">
-                  <div class="message-header">
-                    <span class="assistant-label">旅行助手</span>
-                    <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
-                  </div>
-                  <div class="message-content markdown-content" v-html="renderMarkdown(msg.content)"></div>
-                </div>
-              </div>
-            </div>
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 顶部导航 -->
+      <header class="header">
+        <div class="flex items-center gap-4">
+          <div class="relative">
+            <input 
+              type="text" 
+              placeholder="搜索行程、景点..." 
+              class="input pl-10 w-64"
+            />
+            <span class="icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">🔍</span>
           </div>
         </div>
+        <div class="flex items-center gap-4">
+          <button type="button" class="btn btn-text">
+            <span class="icon">🔔</span>
+          </button>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <span class="icon">👤</span>
+            </div>
+            <span class="text-sm font-medium">张三</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 内容区域 -->
+      <div class="content-area">
+        <div class="card mb-6">
+          <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold mb-2">智能规划您的完美旅程</h1>
+            <p class="text-gray-600">告诉我您的旅行需求，3步生成专属行程</p>
+          </div>
+          <div class="flex justify-center mb-6">
+            <div class="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center">
+              <span class="icon text-6xl">🗺️</span>
+            </div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4 mb-6">
+            <textarea 
+              class="w-full h-40 bg-transparent text-gray-700 resize-none outline-none" 
+              placeholder="例如：'上海三日游，2000元预算，喜欢美食和艺术'" 
+              style="font-size: 16px;"
+              v-model="travelRequest"
+            ></textarea>
+          </div>
+          <div class="flex gap-3 flex-wrap mb-6">
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('北京三日游 1500元')">北京三日游 1500元</button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('杭州两日游 美食之旅')">杭州两日游 美食之旅</button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('成都四日游 文化体验')">成都四日游 文化体验</button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('西安三日游 历史文化')">西安三日游 历史文化</button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('厦门两日游 海滨风光')">厦门两日游 海滨风光</button>
+          </div>
+          <div class="flex justify-center">
+            <button type="button" class="btn btn-primary px-12" @click="startPlanning">开始规划</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- 最近规划 -->
+          <div class="card">
+            <h3 class="font-bold text-lg mb-4">最近规划</h3>
+            <div class="space-y-3">
+              <div class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100" @click="navigateTo('/result')">
+                <div class="font-medium">北京文化三日游</div>
+                <div class="text-gray-600">3天 · ¥1560</div>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100" @click="navigateTo('/result')">
+                <div class="font-medium">杭州西湖两日游</div>
+                <div class="text-gray-600">2天 · ¥980</div>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100" @click="navigateTo('/result')">
+                <div class="font-medium">成都四日游 文化体验</div>
+                <div class="text-gray-600">4天 · ¥2100</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 热门推荐 -->
+          <div class="card">
+            <h3 class="font-bold text-lg mb-4">热门推荐</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <h4 class="font-medium">故宫博物院</h4>
+                <p class="text-xs text-gray-600 mt-1">北京必去景点</p>
+                <div class="text-orange-500 mt-2">¥60</div>
+              </div>
+              <div class="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <h4 class="font-medium">西湖</h4>
+                <p class="text-xs text-gray-600 mt-1">杭州标志性景点</p>
+                <div class="text-orange-500 mt-2">免费</div>
+              </div>
+              <div class="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <h4 class="font-medium">兵马俑</h4>
+                <p class="text-xs text-gray-600 mt-1">世界第八大奇迹</p>
+                <div class="text-orange-500 mt-2">¥120</div>
+              </div>
+              <div class="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <h4 class="font-medium">鼓浪屿</h4>
+                <p class="text-xs text-gray-600 mt-1">厦门海上花园</p>
+                <div class="text-orange-500 mt-2">¥90</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import MarkdownIt from 'markdown-it'
-import { travelAPI } from '../utils/api'
-import { isLoggedIn, logout as authLogout, getChatHistory, saveChatHistory, getSessionId, saveSessionId } from '../utils/auth'
+import { planByBudget } from '../api/itinerary'
 
 const router = useRouter()
-const md = new MarkdownIt({
-  html: true,
-  breaks: true,
-  linkify: true
-})
 
-// 表单数据
-const formData = ref({
-  startCity: '',
-  endCity: '',
-  startDate: '',
-  endDate: '',
-  requirements: ''
-})
+// 旅行需求输入
+const travelRequest = ref('')
 
-// 城市列表
-const cities = ref([
-  '北京', '上海', '广州', '深圳', '杭州', '南京', '成都', '重庆', '西安', '武汉',
-  '天津', '苏州', '郑州', '长沙', '青岛', '厦门', '大连', '济南', '哈尔滨', '石家庄'
-])
+// 导航到指定页面
+const navigateTo = (path) => {
+  router.push(path)
+}
 
-// 对话历史
-const chatHistory = ref([])
-const currentResponse = ref('')
-const isGenerating = ref(false)
-const userQuery = ref('')
-const loading = ref(false)
+// 选择推荐模板
+const selectTemplate = (template) => {
+  travelRequest.value = template
+}
 
-// 计算属性：渲染后的Markdown内容
-const renderedResponses = computed(() => {
-  return chatHistory.value.map(item => ({
-    ...item,
-    renderedContent: item.role === 'assistant' ? md.render(item.content) : item.content
-  }))
-})
-
-// 当前响应的渲染结果
-const renderedCurrentResponse = computed(() => {
-  return currentResponse.value ? md.render(currentResponse.value) : ''
-})
-
-// 检查登录状态
-onMounted(() => {
-  if (!isLoggedIn()) {
-    router.push('/login')
-    return
-  }
-  
-  // 加载聊天历史
-  const savedHistory = getChatHistory()
-  if (savedHistory.length > 0) {
-    chatHistory.value = savedHistory
-  }
-})
-
-// 生成旅行计划
-const generatePlan = async () => {
-  // 验证表单
-  if (!formData.value.startCity || !formData.value.endCity || !formData.value.startDate || !formData.value.endDate) {
-    alert('请填写必要的旅行信息')
-    return
-  }
-  
-  isGenerating.value = true
-  currentResponse.value = ''
-  loading.value = true
-  
+// 开始规划行程
+const startPlanning = async () => {
   try {
-    const requestData = {
-      startCity: formData.value.startCity,
-      endCity: formData.value.endCity,
-      startDate: formData.value.startDate,
-      endDate: formData.value.endDate,
-      requirements: formData.value.requirements,
-      sessionId: getSessionId()
+    // 这里可以添加解析旅行需求的逻辑
+    // 暂时使用模拟数据
+    const params = {
+      city: '北京',
+      days: 3,
+      budget: 1500
     }
     
-    // 调用API生成旅行计划
-    const response = await travelAPI.generatePlan(requestData)
-    
-    if (response.sessionId) {
-      saveSessionId(response.sessionId)
-    }
-    
-    // 添加用户消息到历史
-    chatHistory.value.push({
-      role: 'user',
-      content: `从${formData.value.startCity}到${formData.value.endCity}的旅行计划，日期：${formData.value.startDate}到${formData.value.endDate}，需求：${formData.value.requirements}`
-    })
-    
-    // 处理AI回复
-    if (response.content) {
-      // 模拟打字效果
-      await typeWriter(response.content)
-      
-      // 添加AI回复到历史
-      chatHistory.value.push({
-        role: 'assistant',
-        content: currentResponse.value
-      })
-      
-      // 保存到localStorage
-      saveChatHistory(chatHistory.value)
-    }
+    const result = await planByBudget(params, {})
+    // 保存行程结果到本地存储
+    localStorage.setItem('currentItinerary', JSON.stringify(result))
+    // 跳转到结果页面
+    router.push('/result')
   } catch (error) {
-    console.error('生成旅行计划失败:', error)
-    alert('生成旅行计划失败，请重试')
-  } finally {
-    isGenerating.value = false
-    loading.value = false
+    console.error('规划行程失败:', error)
   }
-}
-
-// 继续对话
-const continueConversation = async () => {
-  if (!userQuery.value.trim()) return
-  
-  const sessionId = getSessionId()
-  if (!sessionId) {
-    alert('请先生成一个旅行计划')
-    return
-  }
-  
-  isGenerating.value = true
-  currentResponse.value = ''
-  loading.value = true
-  
-  try {
-    // 保存用户消息
-    const userMessage = userQuery.value
-    chatHistory.value.push({
-      role: 'user',
-      content: userMessage
-    })
-    
-    // 调用API继续对话
-    const response = await travelAPI.continueConversation({
-      query: userMessage,
-      sessionId: sessionId
-    })
-    
-    // 处理AI回复
-    if (response.content) {
-      // 模拟打字效果
-      await typeWriter(response.content)
-      
-      // 添加AI回复到历史
-      chatHistory.value.push({
-        role: 'assistant',
-        content: currentResponse.value
-      })
-      
-      // 清空输入框
-      userQuery.value = ''
-      
-      // 保存到localStorage
-      saveChatHistory(chatHistory.value)
-    }
-  } catch (error) {
-    console.error('继续对话失败:', error)
-    alert('继续对话失败，请重试')
-  } finally {
-    isGenerating.value = false
-    loading.value = false
-  }
-}
-
-// 打字效果
-const typeWriter = async (text) => {
-  return new Promise(resolve => {
-    let i = 0
-    const speed = 30 // 加快打字速度
-    
-    function type() {
-      if (i < text.length) {
-        currentResponse.value += text.charAt(i)
-        i++
-        setTimeout(type, speed)
-      } else {
-        resolve()
-      }
-    }
-    
-    type()
-  })
-}
-
-// 格式化日期
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('zh-CN')
-}
-
-// 清除历史记录
-const clearHistory = () => {
-  chatHistory.value = []
-  currentResponse.value = ''
-  saveChatHistory([])
-}
-
-// 登出
-const logout = () => {
-  authLogout()
-  router.push('/login')
 }
 </script>
 
 <style scoped>
-.home-container {
+.app-layout {
+  display: flex;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f7fa;
 }
 
-.navbar {
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 30px;
+/* 图标样式 */
+.icon {
+  font-size: 18px;
 }
 
-.navbar-brand {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2575fc;
-}
-
-.navbar-menu {
-  display: flex;
-  gap: 20px;
-}
-
-.nav-item {
-  padding: 8px 16px;
-  text-decoration: none;
-  color: #666;
-  border-radius: 6px;
-  transition: all 0.3s;
-}
-
-.nav-item:hover, .nav-item.active {
-  color: #2575fc;
-  background-color: #e6f0ff;
-}
-
-.navbar-user {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.username {
-  font-weight: 500;
-  color: #333;
-}
-
-.logout-btn {
-  padding: 8px 16px;
-  background: #f44336;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.logout-btn:hover {
-  background: #d32f2f;
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
-  padding: 30px;
-  gap: 30px;
-}
-
-.left-panel {
-  flex: 0 0 450px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.right-panel {
-  flex: 1;
-  min-height: 600px;
-}
-
-.plan-form, .chat-form {
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.plan-form h2, .chat-form h3 {
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #555;
-}
-
-.form-group input, .form-group select, .form-group textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s;
-}
-
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  border-color: #2575fc;
-  box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
-  outline: none;
-}
-
-.generate-btn, .send-btn {
-  background: linear-gradient(135deg, #2575fc, #6a11cb);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  width: 100%;
-}
-
-.generate-btn:hover:not(:disabled), .send-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(37, 117, 252, 0.4);
-}
-
-.generate-btn:disabled, .send-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.chat-form-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.plan-result {
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  min-height: 100%;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #888;
-}
-
-.empty-state h3 {
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #eee;
-}
-
-.result-header h3 {
-  color: #333;
-  margin: 0;
-}
-
-.session-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.clear-btn {
-  padding: 6px 12px;
-  background: #f44336;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 0.85rem;
-}
-
-.clear-btn:hover {
-  background: #d32f2f;
-}
-
-.messages-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.message-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.user-message, .assistant-message {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.user-message .message-content {
-  background: #e6f0ff;
-  color: #2575fc;
-  padding: 15px;
-  border-radius: 12px;
-  max-width: 90%;
-  align-self: flex-end;
-}
-
-.assistant-message .message-content {
-  background: #f5f5f5;
-  color: #333;
-  padding: 15px;
-  border-radius: 12px;
-  max-width: 90%;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.user-label {
-  color: #2575fc;
-}
-
-.assistant-label {
-  color: #6a11cb;
-}
-
-.message-time {
-  color: #999;
-}
-
-/* Markdown样式 */
-.markdown-content {
-  line-height: 1.6;
-}
-
-.markdown-content h1, .markdown-content h2, .markdown-content h3 {
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-.markdown-content h1 { font-size: 1.8rem; }
-.markdown-content h2 { font-size: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-.markdown-content h3 { font-size: 1.3rem; }
-
-.markdown-content ul, .markdown-content ol {
-  padding-left: 25px;
-  margin: 10px 0;
-}
-
-.markdown-content li {
-  margin-bottom: 5px;
-}
-
-.markdown-content blockquote {
-  border-left: 4px solid #2575fc;
-  padding-left: 15px;
-  color: #666;
-  margin: 15px 0;
-}
-
-.markdown-content code {
-  background: #f8f8f8;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.markdown-content pre {
-  background: #f8f8f8;
-  padding: 15px;
-  border-radius: 8px;
-  overflow-x: auto;
-}
-
-.markdown-content pre code {
-  background: none;
-  padding: 0;
-}
-
-@media (max-width: 1200px) {
-  .main-content {
-    flex-direction: column;
-  }
-  
-  .left-panel {
-    flex: none;
-    width: 100%;
-  }
-}
-
+/* 移动端适配 */
 @media (max-width: 768px) {
-  .navbar {
+  .app-layout {
     flex-direction: column;
-    gap: 15px;
   }
   
-  .navbar-menu {
-    flex-wrap: wrap;
-    justify-content: center;
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
   }
   
   .main-content {
-    padding: 15px;
-    gap: 15px;
+    margin-left: 0;
   }
   
-  .plan-form, .chat-form, .plan-result {
-    padding: 20px;
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
   }
 }
 </style>

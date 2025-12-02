@@ -24,6 +24,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/deekseek")
+// todo 仅测试用
+@CrossOrigin
 public class DeekSeekController {
 
     @Autowired

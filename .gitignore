@@ -1,2 +1,4 @@
 # 项目排除路径
 /zeyuli/zeyuli-job/target/
+/.idea/
+/zeyuli/zeyuli-job/src/main/resources/static/assets/
