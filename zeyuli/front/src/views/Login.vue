@@ -65,6 +65,22 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../api/user'
+// todo 待完善
+// SHA256加密函数
+const sha256 = async (message) => {
+  // 将字符串转换为Uint8Array
+  const encoder = new TextEncoder()
+  const data = encoder.encode(message)
+  
+  // 使用SubtleCrypto API进行SHA-256哈希
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  
+  // 将ArrayBuffer转换为十六进制字符串
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  
+  return hashHex
+}
 
 // SHA256加密函数
 const sha256 = async (message) => {
