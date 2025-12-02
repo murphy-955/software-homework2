@@ -268,7 +268,7 @@
 import {ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {planItinerary} from '../api/itinerary'
-
+// todo 待完善
 const router = useRouter()
 
 // 旅行基本信息

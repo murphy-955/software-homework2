@@ -65,7 +65,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../api/user'
-
+// todo 待完善
 // SHA256加密函数
 const sha256 = async (message) => {
   // 将字符串转换为Uint8Array
