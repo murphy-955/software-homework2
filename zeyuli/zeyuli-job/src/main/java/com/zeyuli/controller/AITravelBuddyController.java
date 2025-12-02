@@ -20,6 +20,8 @@ import java.util.Set;
  */
 @RestController
 @RequestMapping("/ai-travel-buddy")
+// todo 仅测试用
+@CrossOrigin
 public class AITravelBuddyController {
     
     @Autowired

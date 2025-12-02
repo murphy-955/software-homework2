@@ -21,6 +21,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/map")
+// todo 仅测试用
+@CrossOrigin
 public class MapController {
     
     @Autowired
