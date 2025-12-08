@@ -75,14 +75,23 @@ GET /map/search-locations
 
 ```json
 [
-  {
-    "name": "",
-    "lat": 0,
-    "lng": 0,
-    "address": "",
-    "type": "",
-    "cityCode": ""
-  }
+  [
+    {
+      "name": "",
+      "lat": 0,
+      "lng": 0,
+      "address": "",
+      "type": "",
+      "cityCode": ""
+    },
+    {
+      "name": "",
+      "lat": 0,
+      "lng": 0,
+      "address": "",
+      "type": "",
+      "cityCode": ""
+    }]
 ]
 ```
 

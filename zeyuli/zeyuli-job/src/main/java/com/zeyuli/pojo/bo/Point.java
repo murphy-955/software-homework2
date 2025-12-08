@@ -11,6 +11,13 @@ import lombok.Data;
  */
 @Data
 public class Point {
+    // 纬度
     private double lat;
+    // 经度
     private double lng;
+
+    public Point(double lat, double lon) {
+        this.lat = lat;
+        this.lng = lon;
+    }
 }
