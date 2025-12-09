@@ -29,3 +29,12 @@ GET http://localhost:8080/map/surrounding-pois?location=118.796786,31.970968&rad
 
 ###
 GET http://localhost:8080/map/poi-details-list
+
+###
+GET http://localhost:8080/map/screenshot?center=118.796786,31.970968&zoom=15&width=1000&height=1000
+
+###
+GET http://localhost:8080/map/weather?cityCode=320100
+
+###
+GET http://localhost:8080/map/city-code?cityName=南京

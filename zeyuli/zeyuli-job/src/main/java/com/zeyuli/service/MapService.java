@@ -76,4 +76,6 @@ public interface MapService {
      * 获取景点列表
      */
     Map<String, Object> getPOIDetailsList();
+
+    String getCityCode(String cityName);
 }

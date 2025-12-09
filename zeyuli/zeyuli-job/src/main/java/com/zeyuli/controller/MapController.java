@@ -105,4 +105,10 @@ public class MapController {
     public Map<String, Object> getPOIDetails() {
         return mapService.getPOIDetailsList();
     }
+
+    @ApiOperation(value = "获取cityCode",notes = "获取城市编码")
+    @GetMapping("/city-code")
+    public String getCityCode(@RequestParam String cityName){
+        return mapService.getCityCode(cityName);
+    }
 }

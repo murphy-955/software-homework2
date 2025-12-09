@@ -4,15 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zeyuli.enm.POIEnum;
 import com.zeyuli.pojo.bo.*;
-import com.zeyuli.pojo.vo.GaodeAddress;
-import com.zeyuli.pojo.vo.Geocodes;
-import com.zeyuli.pojo.vo.POIAddress;
-import com.zeyuli.pojo.vo.Pois;
+import com.zeyuli.pojo.vo.*;
 import com.zeyuli.service.MapService;
 import com.zeyuli.util.JsonUtil;
 import com.zeyuli.util.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.http.ResponseUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -22,7 +19,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 高德地图服务实现
@@ -166,6 +162,16 @@ public class AmapMapServiceImpl implements MapService {
         return locations;
     }
 
+    /**
+     * 根据名称搜索位置，并限制数量
+     *
+     * @param query  搜索关键词
+     * @param region 区域
+     * @param coount 搜索数量
+     * @return : java.util.List<com.zeyuli.pojo.bo.Location>
+     * @author : 李泽聿
+     * @since : 2025-12-09 19:24
+     */
     @Override
     public List<Location> searchLocations(String query, String region, int coount) {
         List<Location> locations = searchLocations(query, region);
@@ -297,29 +303,152 @@ public class AmapMapServiceImpl implements MapService {
         return pois;
     }
 
+    /**
+     * 获取高德地图静态截图
+     *
+     * @param center 地图中心点坐标，格式：经度,纬度（例如：116.473168,39.993015）
+     * @param zoom   缩放级别，范围：1-17（1为世界，17为街道）
+     * @param width  图片宽度，范围：1-1024（像素）
+     * @param height 图片高度，范围：1-1024（像素）
+     * @return 静态地图图片的URL
+     * @author : 李泽聿
+     * @since : 2025-12-09 19:35
+     */
     @Override
     public String getMapScreenshot(String center, String zoom, String width, String height) {
         try {
-            // 静态地图API
-            String url = BASE_URL + "/staticmap?location=" + center + "&zoom=" + zoom + "&size=" + width + "," + height + "&key=" + getKey();
-            // 返回图片URL
-            return url;
+            // 参数验证
+            if (StringUtils.isEmpty(center) || StringUtils.isEmpty(zoom)
+                    || StringUtils.isEmpty(width) || StringUtils.isEmpty(height)) {
+                log.error("静态地图参数不能为空");
+                return "";
+            }
+
+            // 验证坐标格式
+            if (!center.matches("^\\d+(\\.\\d+)?,\\d+(\\.\\d+)?$")) {
+                log.error("中心点坐标格式错误: {}", center);
+                return "";
+            }
+
+            // 验证缩放级别（1-17）
+            int zoomInt = Integer.parseInt(zoom);
+            if (zoomInt < 1 || zoomInt > 17) {
+                log.error("缩放级别超出范围（1-17）: {}", zoom);
+                return "";
+            }
+
+            // 验证图片尺寸（1-1024）
+            int widthInt = Integer.parseInt(width);
+            int heightInt = Integer.parseInt(height);
+            if (widthInt < 1 || widthInt > 1024 || heightInt < 1 || heightInt > 1024) {
+                log.error("图片尺寸超出范围（1-1024）: {}x{}", width, height);
+                return "";
+            }
+
+            // 构建静态地图API URL
+            String url = String.format("%s/staticmap?location=%s&zoom=%s&size=%s*%s&key=%s",
+                    BASE_URL,
+                    URLEncoder.encode(center, StandardCharsets.UTF_8),
+                    URLEncoder.encode(zoom, StandardCharsets.UTF_8),
+                    URLEncoder.encode(width, StandardCharsets.UTF_8),
+                    URLEncoder.encode(height, StandardCharsets.UTF_8),
+                    getKey()
+            );
+
+            log.info("静态地图URL: {}", url);
+
+            // 可选：验证URL是否有效（可以发送HEAD请求检查）
+            if (isUrlValid(url)) {
+                return url;
+            } else {
+                log.error("静态地图URL无效");
+                return "";
+            }
+
+        } catch (NumberFormatException e) {
+            log.error("参数格式转换失败: {}", e.getMessage());
+            return "";
         } catch (Exception e) {
-            log.error("获取地图截图失败: {}", e.getMessage());
+            log.error("获取地图截图失败: {}", e.getMessage(), e);
+            return "";
         }
-        return "";
     }
 
+    /**
+     * 验证URL是否有效
+     */
+    private boolean isUrlValid(String url) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setRequestMethod("HEAD");
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(3000);
+            int responseCode = connection.getResponseCode();
+            return responseCode == 200; // HTTP 200 OK
+        } catch (Exception e) {
+            log.warn("URL验证失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 获取城市天气信息
+     *
+     * @param cityCode 城市码（可以是城市编码或城市名称）
+     * @return 天气信息JSON字符串，或null（失败时）
+     * @author : 李泽聿
+     * @since : 2025-12-09 19:50
+     */
     @Override
     public String getWeatherInfo(String cityCode) {
         try {
-            String url = WEATHER_URL + "?city=" + cityCode + "&key=" + getKey();
-            return httpGet(url);
+            // 参数验证
+            if (StringUtils.isBlank(cityCode)) {
+                log.error("城市码不能为空");
+                return "城市码不能为空";
+            }
+
+            // 清理参数
+            cityCode = cityCode.trim();
+
+            // 判断cityCode是编码还是城市名，并进行相应处理
+            String encodedCity = URLEncoder.encode(cityCode, "UTF-8");
+
+            // 构建URL - 实时天气API
+            String url = WEATHER_URL + "?city=" + encodedCity + "&key=" + getKey() + "&extensions=base";
+            log.info("天气API请求URL: {}", url);
+
+            // 发送HTTP请求
+            String response = httpGet(url);
+
+            if (StringUtils.isBlank(response)) {
+                log.error("天气API返回空响应");
+                return "网络错误";
+            }
+
+            log.info("天气API返回: {}", response);
+
+            // 解析响应，验证状态
+            ObjectMapper mapper = new ObjectMapper();
+            WeatherInfoVo jsonResponse = mapper.readValue(response, WeatherInfoVo.class);
+            String status = jsonResponse.getStatus();
+
+            if (!"1".equals(status)) {
+                String info = jsonResponse.getInfo();
+                String infocode = jsonResponse.getInfocode();
+                log.error("天气API调用失败: {}, 错误码: {}", info, infocode);
+            }
+
+            // 返回完整的响应（可以是JSON字符串，也可以处理后返回）
+            List<LivesVo> lives = jsonResponse.getLives();
+            return lives.getFirst().getWeather();
+
         } catch (Exception e) {
-            log.error("获取天气信息失败: {}", e.getMessage());
-            return null;
+            log.error("获取天气信息失败: {}", e.getMessage(), e);
         }
+        return "获取天气信息失败";
     }
+
 
     /**
      * 计算交通费用
@@ -330,19 +459,16 @@ public class AmapMapServiceImpl implements MapService {
      * @return 预估费用
      */
     private double calculateCost(String mode, double distance, double duration) {
-        switch (mode.toLowerCase()) {
-            case "driving":
+        return switch (mode.toLowerCase()) {
+            case "driving" ->
                 // 驾车费用估算：0.8元/公里
-                return (distance / 1000) * 0.8;
-            case "transit":
+                    (distance / 1000) * 0.8;
+            case "transit" ->
                 // 公共交通费用估算：固定费用+距离费用
-                return 3 + (distance / 10000) * 2;
-            case "walking":
-            case "bicycling":
-                return 0;
-            default:
-                return 0;
-        }
+                    3 + (distance / 10000) * 2;
+            case "walking", "bicycling" -> 0;
+            default -> 0;
+        };
     }
 
     /**
