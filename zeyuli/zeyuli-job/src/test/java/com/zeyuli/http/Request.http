@@ -38,3 +38,9 @@ GET http://localhost:8080/map/weather?cityCode=320100
 
 ###
 GET http://localhost:8080/map/city-code?cityName=南京
+
+###
+GET http://localhost:8080/map/address-by-location?lat=118.796786&lng=31.970968
+
+###
+GET http://localhost:8080/map/distance?origin=118.796786,31.970968&destination=118.801196,32.021518

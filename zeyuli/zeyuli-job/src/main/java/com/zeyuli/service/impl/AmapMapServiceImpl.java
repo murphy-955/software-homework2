@@ -496,25 +496,94 @@ public class AmapMapServiceImpl implements MapService {
         return result.toString();
     }
 
+    /**
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-09 21:01
+     * @param lat 维度
+     * @param lng 经度
+     * @return : java.lang.String
+     */
     @Override
     public String getAddressByLocation(double lat, double lng) {
         try {
-            String url = BASE_URL + "/geocode/regeo?location=" + lng + "," + lat + "&key=" + getKey();
-            return httpGet(url);
+            // 格式化为高德API要求的精度（通常6位小数足够）
+            String location = String.format("%.6f,%.6f", lat, lng);
+
+            // 构建URL - 逆地理编码API
+            String url = String.format("%s/geocode/regeo?location=%s&key=%s&extensions=%s&poitype=%s&radius=%s&roadlevel=%s",
+                    BASE_URL,
+                    URLEncoder.encode(location, StandardCharsets.UTF_8),
+                    getKey(),
+                    "base",       // 默认返回基本地址信息
+                    "all",        // 返回所有类型的POI
+                    "1000",       // 搜索半径（米）
+                    "0"           // 道路等级：0-全部，1-高速公路，2-国道，3-省道，4-县道
+            );
+
+            log.info("逆地理编码API请求URL: {}", url.replace(getKey(), "***")); // 安全日志
+
+            // 发送HTTP请求
+            String response = httpGet(url);
+
+            if (StringUtils.isBlank(response)) {
+                log.error("逆地理编码API返回空响应");
+                return "网络错误";
+            }
+
+            log.debug("逆地理编码API返回: {}", response);
+
+            // 解析响应，验证状态
+            ObjectMapper mapper = new ObjectMapper();
+            ReverseCodingVo res = mapper.readValue(response, ReverseCodingVo.class);
+
+            if (!"1".equals(res.getStatus())) {
+                String info = res.getInfo();
+                String infocode = res.getInfocode();
+                log.error("逆地理编码API调用失败: {}, 错误码: {}", info, infocode);
+                return "网络错误";
+            }
+
+            // 完整地址
+            return res.getRegeocode().getFormatted_address();
+
         } catch (Exception e) {
-            log.error("获取地址信息失败: {}", e.getMessage());
-            return null;
+            log.error("获取地址信息失败: {}", e.getMessage(), e);
+            return "网络错误";
         }
     }
 
+    /**
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-09 21:20
+     * @param origin 经度,纬度（例如：116.473168,39.993015）
+     * @param destination 经度,纬度（例如：116.473168,39.993015）
+     * @return : double 计算的距离，单位：米，-1表示失败
+     */
     @Override
     public double getDistance(String origin, String destination) {
         try {
-            String url = BASE_URL + "/distance?origins=" + origin + "&destination=" + destination + "&type=1&key=" + getKey();
+            // 参数验证
+            if (StringUtils.isBlank(origin) || StringUtils.isBlank(destination)) {
+                log.error("起点或终点不能为空");
+                return -1;
+            }
+
+            // 这里使用type=1（驾车路径距离），因为直线距离太简单，驾车距离更实用
+            String url = String.format("%s/distance?origins=%s&destination=%s&type=%d&key=%s",
+                    BASE_URL,
+                    URLEncoder.encode(origin, "UTF-8"),
+                    URLEncoder.encode(destination, "UTF-8"),
+                    1,  // 驾车距离
+                    getKey()
+            );
             String result = httpGet(url);
             // 解析JSON响应，简化处理
-            log.info("距离计算结果: {}", result);
-            return 0; // 实际实现需要解析结果
+            ObjectMapper mapper = new ObjectMapper();
+            DistanceVo jsonResponse = mapper.readValue(result, DistanceVo.class);
+            log.info("距离API返回: {}", jsonResponse.getResults().getFirst().getDistance());
+            return Double.parseDouble(jsonResponse.getResults().getFirst().getDistance());
         } catch (Exception e) {
             log.error("获取距离失败: {}", e.getMessage());
             return -1;
