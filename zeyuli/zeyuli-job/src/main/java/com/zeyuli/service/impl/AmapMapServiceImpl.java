@@ -2,24 +2,27 @@ package com.zeyuli.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zeyuli.enm.POIEnum;
 import com.zeyuli.pojo.bo.*;
 import com.zeyuli.pojo.vo.GaodeAddress;
 import com.zeyuli.pojo.vo.Geocodes;
 import com.zeyuli.pojo.vo.POIAddress;
 import com.zeyuli.pojo.vo.Pois;
 import com.zeyuli.service.MapService;
+import com.zeyuli.util.JsonUtil;
+import com.zeyuli.util.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.ResponseUtil;
 import org.springframework.stereotype.Service;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 高德地图服务实现
@@ -36,7 +39,7 @@ public class AmapMapServiceImpl implements MapService {
     private static final String DIRECTION_URL = "https://restapi.amap.com/v3/direction";
     private static final String WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
     private static final String POI_DETAIL_URL = "https://restapi.amap.com/v3/place/detail";
-    
+
     // 获取API密钥的方法，便于未来实现密钥管理
     private String getKey() {
         return KEY;
@@ -76,10 +79,10 @@ public class AmapMapServiceImpl implements MapService {
      * }}
      * </pre>
      *
-     * @author : 李泽聿
-     * @since : 2025-12-08 08:20
      * @param location 地址
      * @return : com.zeyuli.pojo.bo.Point
+     * @author : 李泽聿
+     * @since : 2025-12-08 08:20
      */
     @Override
     public Point getMapCenter(String location) {
@@ -88,7 +91,7 @@ public class AmapMapServiceImpl implements MapService {
             String url = BASE_URL + "/geocode/geo?address=" + URLEncoder.encode(location, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
             if (result.contains("location")) {
-                ObjectMapper mapper =new ObjectMapper();
+                ObjectMapper mapper = new ObjectMapper();
                 GaodeAddress gaodeAddress = mapper.readValue(result, GaodeAddress.class);
                 // 获取location
                 Geocodes geocodes = gaodeAddress.getGeocodes().getFirst();
@@ -107,12 +110,12 @@ public class AmapMapServiceImpl implements MapService {
             String url = BASE_URL + "/geocode/geo?address=" + URLEncoder.encode(cityName, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
             if (result.contains("location")) {
-                ObjectMapper mapper =new ObjectMapper();
+                ObjectMapper mapper = new ObjectMapper();
                 GaodeAddress gaodeAddress = mapper.readValue(result, GaodeAddress.class);
                 // 获取location
                 Geocodes geocodes = gaodeAddress.getGeocodes().getFirst();
                 // 解析location
-                return geocodes.getCitycode();
+                return JsonUtil.text(geocodes.getAdcode());
             }
         } catch (Exception e) {
             log.error("获取城市编码失败: {}", e.getMessage());
@@ -122,11 +125,11 @@ public class AmapMapServiceImpl implements MapService {
 
     /**
      *
-     * @author : 李泽聿
-     * @since : 2025-12-08 08:56
-     * @param query 搜索关键词
+     * @param query  搜索关键词
      * @param region 区域
      * @return : java.util.List<com.zeyuli.pojo.bo.Location>
+     * @author : 李泽聿
+     * @since : 2025-12-08 08:56
      */
     @Override
     public List<Location> searchLocations(String query, String region) {
@@ -134,7 +137,7 @@ public class AmapMapServiceImpl implements MapService {
         try {
             // 搜索POI
             String url = BASE_URL + "/place/text?keywords=" + URLEncoder.encode(query, StandardCharsets.UTF_8) + "&region=" +
-                         URLEncoder.encode(region, StandardCharsets.UTF_8) + "&key=" + getKey();
+                    URLEncoder.encode(region, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
             ObjectMapper mapper = new ObjectMapper();
             POIAddress poiAddress = mapper.readValue(result, POIAddress.class);
@@ -163,20 +166,29 @@ public class AmapMapServiceImpl implements MapService {
         return locations;
     }
 
+    @Override
+    public List<Location> searchLocations(String query, String region, int coount) {
+        List<Location> locations = searchLocations(query, region);
+        if (locations.size() > coount) {
+            return locations.subList(0, coount);
+        }
+        return locations;
+    }
+
     /**
      * 规划路线
      *
+     * @param origin      起点
+     * @param destination 终点
+     * @param mode        交通方式
+     * @return : com.zeyuli.pojo.bo.Route
      * @author : 李泽聿
      * @since : 2025-12-08 09:51
-     * @param origin 起点
-     * @param destination 终点
-     * @param mode 交通方式
-     * @return : com.zeyuli.pojo.bo.Route
      */
     @Override
-    // todo 待测试
     public Route getRoute(String origin, String destination, String mode) {
         Route route = new Route();
+        log.info("获取路径规划: {} -> {}", origin, destination);
         try {
             // 1. 构造 URL
             String type = switch (mode.toLowerCase()) {
@@ -185,8 +197,15 @@ public class AmapMapServiceImpl implements MapService {
                 case "bicycling" -> "bicycling";
                 default -> "driving";
             };
+            // 将城市解析成经纬度
+            Point originPoint = getMapCenter(origin);
+            Point destinationPoint = getMapCenter(destination);
+            if (originPoint == null || destinationPoint == null) {
+                log.warn("路径规划失败：无法解析起点或终点");
+                return route;
+            }
             String url = DIRECTION_URL + "/" + type +
-                    "?origin=" + origin + "&destination=" + destination + "&key=" + getKey();
+                    "?origin=" + originPoint.formatLatAndLng() + "&destination=" + destinationPoint.formatLatAndLng() + "&key=" + getKey();
             String json = httpGet(url);
 
             // 2. 解析
@@ -201,11 +220,11 @@ public class AmapMapServiceImpl implements MapService {
             JsonNode path = root.at("/route/paths/0");
             if (path == null || path.isMissingNode()) return route;
 
-            double distance = path.get("distance").asDouble();          // 米
-            double duration = path.get("duration").asDouble();          // 秒
-            String polyline = path.get("polyline").asText();            // 轨迹
-            String startName = path.at("/origin/name").asText("起点");
-            String endName = path.at("/destination/name").asText("终点");
+            double distance = path.path("distance").asDouble(0);          // 米
+            double duration = path.path("duration").asDouble(0);          // 秒
+            String polyline = path.path("polyline").asText("");           // 轨迹
+            String startName = root.at("/route/origin/name").asText("起点");
+            String endName = root.at("/route/destination/name").asText("终点");
 
             // 4. 填充 Route
             route.setMode(mode);
@@ -250,13 +269,24 @@ public class AmapMapServiceImpl implements MapService {
         return route;
     }
 
+    /**
+     * 获取周边的相关POI情况
+     *
+     * @param location 当前位置(必须提供经纬度)
+     * @param radius   半径(单位：米)
+     * @param types    POI类型{@link com.zeyuli.enm.POIEnum}(前端返回格式：190203|190204)
+     * @return : java.util.List<com.zeyuli.pojo.bo.POI>
+     * @author : 李泽聿
+     * @since : 2025-12-08 11:12
+     */
     @Override
+    // todo 待实现
     public List<POI> getSurroundingPOIs(String location, String radius, String types) {
         List<POI> pois = new ArrayList<>();
         try {
             // 周边搜索API
-            String url = BASE_URL + "/place/around?location=" + location + "&radius=" + radius + 
-                         "&types=" + types + "&key=" + getKey();
+            String url = BASE_URL + "/place/around?location=" + location + "&radius=" + radius +
+                    "&types=" + types + "&key=" + getKey();
             String result = httpGet(url);
             // 解析JSON响应，简化处理
             log.info("周边POI搜索结果: {}", result);
@@ -293,7 +323,8 @@ public class AmapMapServiceImpl implements MapService {
 
     /**
      * 计算交通费用
-     * @param mode 交通方式
+     *
+     * @param mode     交通方式
      * @param distance 距离（米）
      * @param duration 时长（秒）
      * @return 预估费用
@@ -316,6 +347,7 @@ public class AmapMapServiceImpl implements MapService {
 
     /**
      * 发送HTTP GET请求
+     *
      * @param urlString URL地址
      * @return 响应内容
      */
@@ -326,7 +358,7 @@ public class AmapMapServiceImpl implements MapService {
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
-        
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -362,7 +394,7 @@ public class AmapMapServiceImpl implements MapService {
             return -1;
         }
     }
-    
+
     @Override
     public Map<String, Object> getPOIDetails(String poiId) {
         Map<String, Object> details = new HashMap<>();
@@ -380,15 +412,15 @@ public class AmapMapServiceImpl implements MapService {
         }
         return details;
     }
-    
+
     @Override
     public List<POI> getAttractionsByCity(String city, int page, int pageSize) {
         List<POI> attractions = new ArrayList<>();
         try {
             // 搜索城市的景点，types参数设置为景点类型
-            String url = BASE_URL + "/place/text?keywords=景点&types=110000&city=" + 
-                         URLEncoder.encode(city, "UTF-8") + "&offset=" + pageSize + "&page=" + 
-                         page + "&key=" + getKey();
+            String url = BASE_URL + "/place/text?keywords=景点&types=110000&city=" +
+                    URLEncoder.encode(city, "UTF-8") + "&offset=" + pageSize + "&page=" +
+                    page + "&key=" + getKey();
             String result = httpGet(url);
             log.info("城市景点搜索结果: {}", result);
             // 实际实现需要解析JSON并构建POI对象列表
@@ -397,4 +429,23 @@ public class AmapMapServiceImpl implements MapService {
         }
         return attractions;
     }
+
+    /**
+     * 获取POI类型列表
+     *
+     * @return : java.util.Map<java.lang.String,java.lang.Object>
+     * @author : 李泽聿
+     * @since : 2025-12-09 09:55
+     */
+    @Override
+    public Map<String, Object> getPOIDetailsList() {
+        ArrayList<Object> res = new ArrayList<>();
+        for (POIEnum poiEnum : POIEnum.values()) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put(poiEnum.getCode(), poiEnum.getName());
+            res.add(map);
+        }
+        return Response.success(res);
+    }
+
 }

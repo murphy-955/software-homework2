@@ -28,6 +28,11 @@ public interface MapService {
     List<Location> searchLocations(String query, String region);
 
     /**
+     * 返回{@code count}个的搜索结果
+     */
+    List<Location> searchLocations(String query, String region, int coount);
+
+    /**
      * 获取路线
      */
     Route getRoute(String origin, String destination, String mode);
@@ -41,29 +46,34 @@ public interface MapService {
      * 获取地图截图
      */
     String getMapScreenshot(String center, String zoom, String width, String height);
-    
+
     /**
      * 获取天气信息
      */
     String getWeatherInfo(String cityCode);
-    
+
     /**
      * 根据坐标获取地址信息
      */
     String getAddressByLocation(double lat, double lng);
-    
+
     /**
      * 获取两点之间的距离
      */
     double getDistance(String origin, String destination);
-    
+
     /**
      * 获取景点信息，包括门票价格等
      */
     Map<String, Object> getPOIDetails(String poiId);
-    
+
     /**
      * 根据城市获取景点列表
      */
     List<POI> getAttractionsByCity(String city, int page, int pageSize);
+
+    /**
+     * 获取景点列表
+     */
+    Map<String, Object> getPOIDetailsList();
 }

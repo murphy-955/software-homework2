@@ -16,10 +16,16 @@ Content-Type: application/json
 GET http://localhost:10086/deekseek/planItinerary?token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169kBLAWEId6iCiQcMkaAmxt3F4_95D9Q2QwB23qNGJaiFxToxhl3EmdIYvWWEAVpNxyQ5dS0xb3tf5Ypnz4VWop-ku0BAZ5EUe6veD9fGVhteAAAA.k_Dfzay7m7UN8DL30_huGktGjSrGgIBw8PsLVCy4kU5c0BCbG3W9mkIXFFIlELBeP-Rz8LhJUgUGhrliPSVjkA&startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
 
 ###
-GET http://localhost:8080/map/center?location=南京
+GET http://localhost:8080/map/center?location=南京南站
 
 ###
 GET http://localhost:8080/map/search-locations?query=夫子庙&region=南京
 
 ###
-GET http://localhost:8080/map/route?origin=南京&destination=福州&mode=
+GET http://localhost:8080/map/route?origin=南京南站&destination=南京市秦淮区扇骨营小区&mode=bicyling
+
+###
+GET http://localhost:8080/map/surrounding-pois?location=118.796786,31.970968&radius=200000&types=70701
+
+###
+GET http://localhost:8080/map/poi-details-list

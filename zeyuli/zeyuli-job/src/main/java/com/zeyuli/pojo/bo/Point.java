@@ -20,4 +20,8 @@ public class Point {
         this.lat = lat;
         this.lng = lon;
     }
+
+    public String formatLatAndLng() {
+        return String.format("%.6f,%.6f", lat, lng);
+    }
 }
