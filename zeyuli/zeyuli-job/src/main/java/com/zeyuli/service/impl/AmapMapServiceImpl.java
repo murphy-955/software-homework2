@@ -1,6 +1,5 @@
 package com.zeyuli.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zeyuli.enm.POIEnum;
 import com.zeyuli.pojo.bo.*;
@@ -120,6 +119,7 @@ public class AmapMapServiceImpl implements MapService {
     }
 
     /**
+     * 在区域内根据关键字搜素
      *
      * @param query  搜索关键词
      * @param region 区域
@@ -238,7 +238,7 @@ public class AmapMapServiceImpl implements MapService {
                 return route;
             }
 
-            Paths firstPath = data.getPaths().get(0);
+            Paths firstPath = data.getPaths().getFirst();
 
             // 4. 填充Route对象
             route.setMode(mode);
@@ -254,9 +254,7 @@ public class AmapMapServiceImpl implements MapService {
             StringBuilder fullPolyline = new StringBuilder();
 
             List<Steps> steps = firstPath.getSteps();
-            for (int i = 0; i < steps.size(); i++) {
-                Steps step = steps.get(i);
-
+            for (Steps step : steps) {
                 // 创建RouteStep
                 RouteStep routeStep = new RouteStep();
                 routeStep.setInstruction(step.getInstruction());
@@ -440,7 +438,7 @@ public class AmapMapServiceImpl implements MapService {
             cityCode = cityCode.trim();
 
             // 判断cityCode是编码还是城市名，并进行相应处理
-            String encodedCity = URLEncoder.encode(cityCode, "UTF-8");
+            String encodedCity = URLEncoder.encode(cityCode, StandardCharsets.UTF_8);
 
             // 构建URL - 实时天气API
             String url = WEATHER_URL + "?city=" + encodedCity + "&key=" + getKey() + "&extensions=base";
@@ -668,7 +666,7 @@ public class AmapMapServiceImpl implements MapService {
                         details.put("cost", String.join(",", costList));
                         // 尝试从消费信息中提取价格数字
                         try {
-                            String costStr = costList.get(0);
+                            String costStr = costList.getFirst();
                             String priceNum = costStr.replaceAll("[^0-9]", "");
                             if (!priceNum.isEmpty()) {
                                 details.put("price", Integer.parseInt(priceNum));
@@ -687,7 +685,7 @@ public class AmapMapServiceImpl implements MapService {
                     List<String> ratingList = poi.getBiz_ext().getRating();
                     if (ratingList != null && !ratingList.isEmpty()) {
                         try {
-                            String ratingStr = ratingList.get(0);
+                            String ratingStr = ratingList.getFirst();
                             // 高德评分通常是数字字符串
                             details.put("rating", Double.parseDouble(ratingStr));
                         } catch (NumberFormatException e) {

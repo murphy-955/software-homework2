@@ -19,7 +19,7 @@ GET http://localhost:10086/deekseek/planItinerary?token=eyJ6aXAiOiJHWklQIiwiYWxn
 GET http://localhost:8080/map/center?location=南京南站
 
 ###
-GET http://localhost:8080/map/search-locations?query=夫子庙&region=南京
+GET http://localhost:8080/map/search-locations?query=探险乐园&region=南京&count=10
 
 ###
 GET http://localhost:8080/map/route?origin=南京南站&destination=南京市秦淮区扇骨营小区&mode=bicycling
