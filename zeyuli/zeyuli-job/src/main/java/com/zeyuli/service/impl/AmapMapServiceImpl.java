@@ -573,8 +573,8 @@ public class AmapMapServiceImpl implements MapService {
             // 这里使用type=1（驾车路径距离），因为直线距离太简单，驾车距离更实用
             String url = String.format("%s/distance?origins=%s&destination=%s&type=%d&key=%s",
                     BASE_URL,
-                    URLEncoder.encode(origin, "UTF-8"),
-                    URLEncoder.encode(destination, "UTF-8"),
+                    URLEncoder.encode(origin, StandardCharsets.UTF_8),
+                    URLEncoder.encode(destination, StandardCharsets.UTF_8),
                     1,  // 驾车距离
                     getKey()
             );
@@ -590,35 +590,174 @@ public class AmapMapServiceImpl implements MapService {
         }
     }
 
+    /**
+     * @author : 李泽聿
+     * @since : 2025-12-10 08:30
+     * @param poiId POI的ID
+     * @return POI详情的Map对象
+     */
     @Override
     public Map<String, Object> getPOIDetails(String poiId) {
         Map<String, Object> details = new HashMap<>();
         try {
-            String url = POI_DETAIL_URL + "?id=" + poiId + "&key=" + getKey();
+            // 添加extensions=all参数获取详细信息
+            String url = POI_DETAIL_URL + "?id=" + poiId + "&key=" + getKey() + "&extensions=all";
             String result = httpGet(url);
+
             log.info("POI详情结果: {}", result);
-            // 实际实现需要解析JSON并填充details
-            details.put("id", poiId);
-            details.put("price", 0); // 默认价格，实际应从API获取
-            details.put("rating", 0); // 默认评分
-            details.put("openingHours", "全天开放"); // 默认开放时间
+            ObjectMapper mapper = new ObjectMapper();
+            POIDetailsVo jsonResponse = mapper.readValue(result, POIDetailsVo.class);
+
+            // 检查API响应状态
+            if (!"1".equals(jsonResponse.getStatus())) {
+                return getDefaultDetails(poiId);
+            }
+
+            // 获取POI信息
+            if (jsonResponse.getPois() != null && !jsonResponse.getPois().isEmpty()) {
+                PoisInDetailsVo poi = jsonResponse.getPois().getFirst();
+
+                // 设置基本信息
+                details.put("id", poi.getId());
+                details.put("name", poi.getName());
+                details.put("address", poi.getAddress());
+                details.put("location", poi.getLocation());
+                details.put("type", poi.getType());
+                details.put("typecode", poi.getTypecode());
+
+                // 处理电话
+                if (poi.getTel() != null && !poi.getTel().isEmpty()) {
+                    details.put("tel", String.join(",", poi.getTel()));
+                } else {
+                    details.put("tel", "暂无电话");
+                }
+
+                // 处理biz_ext中的消费和评分信息
+                if (poi.getBiz_ext() != null) {
+                    // 处理消费信息
+                    List<String> costList = poi.getBiz_ext().getCost();
+                    if (costList != null && !costList.isEmpty()) {
+                        details.put("cost", String.join(",", costList));
+                        // 尝试从消费信息中提取价格数字
+                        try {
+                            String costStr = costList.get(0);
+                            String priceNum = costStr.replaceAll("[^0-9]", "");
+                            if (!priceNum.isEmpty()) {
+                                details.put("price", Integer.parseInt(priceNum));
+                            } else {
+                                details.put("price", 0);
+                            }
+                        } catch (Exception e) {
+                            details.put("price", 0);
+                        }
+                    } else {
+                        details.put("cost", "暂无消费信息");
+                        details.put("price", 0);
+                    }
+
+                    // 处理评分
+                    List<String> ratingList = poi.getBiz_ext().getRating();
+                    if (ratingList != null && !ratingList.isEmpty()) {
+                        try {
+                            String ratingStr = ratingList.get(0);
+                            // 高德评分通常是数字字符串
+                            details.put("rating", Double.parseDouble(ratingStr));
+                        } catch (NumberFormatException e) {
+                            details.put("rating", 0.0);
+                        }
+                    } else {
+                        details.put("rating", 0.0);
+                    }
+                } else {
+                    details.put("cost", "暂无消费信息");
+                    details.put("price", 0);
+                    details.put("rating", 0.0);
+                }
+
+                // 营业时间（高德地图可能没有直接的openingHours字段）
+                // 可以尝试从其他字段获取或设置默认值
+                details.put("openingHours", "暂无营业时间信息");
+
+                // 其他可能存在的字段
+                details.put("cityname", poi.getCityname());
+                details.put("adname", poi.getAdname());
+                details.put("pname", poi.getPname());
+
+                // 处理照片
+                if (poi.getPhotos() != null && !poi.getPhotos().isEmpty()) {
+                    List<String> photoUrls = new ArrayList<>();
+                    for (PhotosInPoiDetailsVo photo : poi.getPhotos()) {
+                        if (photo.getUrl() != null) {
+                            photoUrls.add(photo.getUrl());
+                        }
+                    }
+                    details.put("photos", photoUrls);
+                }
+
+                // 处理标签
+                if (poi.getTag() != null && !poi.getTag().isEmpty()) {
+                    details.put("tags", poi.getTag());
+                }
+
+            } else {
+                log.warn("未找到POI详情信息，ID: {}", poiId);
+                return getDefaultDetails(poiId);
+            }
+
         } catch (Exception e) {
             log.error("获取POI详情失败: {}", e.getMessage());
+            return getDefaultDetails(poiId);
         }
         return details;
     }
 
+    /**
+     * 获取默认的POI详情信息
+     */
+    private Map<String, Object> getDefaultDetails(String poiId) {
+        Map<String, Object> defaultDetails = new HashMap<>();
+        defaultDetails.put("id", poiId);
+        defaultDetails.put("name", "未知地点");
+        defaultDetails.put("address", "地址信息暂缺");
+        defaultDetails.put("tel", "暂无电话");
+        defaultDetails.put("openingHours", "暂无营业时间信息");
+        defaultDetails.put("rating", 0.0);
+        defaultDetails.put("price", 0);
+        defaultDetails.put("cost", "暂无消费信息");
+        defaultDetails.put("location", "");
+        return defaultDetails;
+    }
+
+    /**
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-10 10:10
+     * @param city 城市名称
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @return : java.util.List<com.zeyuli.pojo.bo.POI>
+     */
     @Override
     public List<POI> getAttractionsByCity(String city, int page, int pageSize) {
         List<POI> attractions = new ArrayList<>();
         try {
             // 搜索城市的景点，types参数设置为景点类型
             String url = BASE_URL + "/place/text?keywords=景点&types=110000&city=" +
-                    URLEncoder.encode(city, "UTF-8") + "&offset=" + pageSize + "&page=" +
+                    URLEncoder.encode(city, StandardCharsets.UTF_8) + "&offset=" + pageSize + "&page=" +
                     page + "&key=" + getKey();
             String result = httpGet(url);
-            log.info("城市景点搜索结果: {}", result);
+            ObjectMapper mapper = new ObjectMapper();
+            AttractionsByCityResultVo jsonResponse = mapper.readValue(result, AttractionsByCityResultVo.class);
             // 实际实现需要解析JSON并构建POI对象列表
+            for (Pois i: jsonResponse.getPois()){
+                POI poi = new POI();
+                poi.setName(i.getName());
+                String[] split = i.getLocation().split(",");
+                poi.setLat(Double.parseDouble(split[1]));
+                poi.setLng(Double.parseDouble(split[0]));
+                attractions.add(poi);
+            }
+            return attractions;
         } catch (Exception e) {
             log.error("获取城市景点列表失败: {}", e.getMessage());
         }

@@ -86,21 +86,21 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
-  // 获取token
-  const token = localStorage.getItem('token')
-  
-  // 不需要登录的页面
-  const publicPages = ['/login', '/register']
-  const authRequired = !publicPages.includes(to.path)
-  
-  if (authRequired && !token) {
-    // 需要登录但没有token，重定向到登录页
-    next('/login')
-  } else {
-    // 不需要登录或有token，继续访问
-    next()
-  }
-})
+// router.beforeEach((to, from, next) => {
+//   // 获取token
+//   const token = localStorage.getItem('token')
+//
+//   // 不需要登录的页面
+//   const publicPages = ['/login', '/register']
+//   const authRequired = !publicPages.includes(to.path)
+//
+//   if (authRequired && !token) {
+//     // 需要登录但没有token，重定向到登录页
+//     next('/login')
+//   } else {
+//     // 不需要登录或有token，继续访问
+//     next()
+//   }
+// })
 
 export default router
