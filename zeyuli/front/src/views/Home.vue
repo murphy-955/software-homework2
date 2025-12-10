@@ -277,7 +277,7 @@ const startPlanning = async () => {
   --glass: rgba(255, 255, 255, 0.78);
   --glass-2: rgba(255, 255, 255, 0.62);
 
-  --sidebar-w: 260px;
+  --sidebar-w: 239px;
 
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
@@ -429,7 +429,7 @@ const startPlanning = async () => {
 /* ====== 分界线按钮（永远贴边） ====== */
 .edge-toggle {
   position: absolute;
-  left: 0;
+  left: 30px;
   top: 18px;
   transform: translateX(-50%);
   z-index: 50;
