@@ -22,7 +22,7 @@ GET http://localhost:8080/map/center?location=南京南站
 GET http://localhost:8080/map/search-locations?query=夫子庙&region=南京
 
 ###
-GET http://localhost:8080/map/route?origin=南京南站&destination=南京市秦淮区扇骨营小区&mode=bicyling
+GET http://localhost:8080/map/route?origin=南京南站&destination=南京市秦淮区扇骨营小区&mode=bicycling
 
 ###
 GET http://localhost:8080/map/surrounding-pois?location=118.796786,31.970968&radius=200000&types=70701
