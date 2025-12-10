@@ -1,14 +1,19 @@
 package com.zeyuli.pojo.vo;
 
-import lombok.Getter;
-import lombok.Setter;
+
+import lombok.Data;
 
 import java.util.List;
 
-@Setter
-@Getter
-public class POIAddress {
+/**
+ * 获取所在城市列表返回结果实体类
+ *
+ * @author 李泽聿
+ * @since 2025-12-10 18:39
+ */
 
+@Data
+public class AttractionsByCityResultVo {
     private SuggestionVo suggestion;
     private String count;
     private String infocode;
@@ -16,4 +21,3 @@ public class POIAddress {
     private String status;
     private String info;
 }
-

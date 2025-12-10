@@ -746,8 +746,18 @@ public class AmapMapServiceImpl implements MapService {
                     URLEncoder.encode(city, StandardCharsets.UTF_8) + "&offset=" + pageSize + "&page=" +
                     page + "&key=" + getKey();
             String result = httpGet(url);
-            log.info("城市景点搜索结果: {}", result);
+            ObjectMapper mapper = new ObjectMapper();
+            AttractionsByCityResultVo jsonResponse = mapper.readValue(result, AttractionsByCityResultVo.class);
             // 实际实现需要解析JSON并构建POI对象列表
+            for (Pois i: jsonResponse.getPois()){
+                POI poi = new POI();
+                poi.setName(i.getName());
+                String[] split = i.getLocation().split(",");
+                poi.setLat(Double.parseDouble(split[1]));
+                poi.setLng(Double.parseDouble(split[0]));
+                attractions.add(poi);
+            }
+            return attractions;
         } catch (Exception e) {
             log.error("获取城市景点列表失败: {}", e.getMessage());
         }

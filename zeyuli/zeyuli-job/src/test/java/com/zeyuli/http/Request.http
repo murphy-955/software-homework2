@@ -47,3 +47,6 @@ GET http://localhost:8080/map/distance?origin=118.796786,31.970968&destination=1
 
 ###
 GET http://localhost:8080/map/poi-details/poiId=B0FFFAB6J2
+
+###
+GET http://localhost:8080/map/attractions-by-city?city=南京&page=1&pageSize10
