@@ -135,7 +135,7 @@ public class AmapMapServiceImpl implements MapService {
             String url = BASE_URL + "/place/text?keywords=" + URLEncoder.encode(query, StandardCharsets.UTF_8) + "&region=" +
                     URLEncoder.encode(region, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
-            log.info("搜索位置结果: {}",url);
+            log.info("搜索位置结果: {}", url);
             ObjectMapper mapper = new ObjectMapper();
             POIAddress poiAddress = mapper.readValue(result, POIAddress.class);
 
@@ -184,12 +184,12 @@ public class AmapMapServiceImpl implements MapService {
 
     /**
      *
+     * @param origin      起始地点（经度，纬度）
+     * @param destination 结束地点（经度，纬度）
+     * @param mode        交通方式（仅walking,transit,bicycling,driving）可选，默认{@code driving}
+     * @return : com.zeyuli.pojo.bo.Route
      * @author : 李泽聿
      * @since : 2025-12-10 19:52
-     * @param origin 起始地点（经度，纬度）
-     * @param destination 结束地点（经度，纬度）
-     * @param mode 交通方式（仅walking,transit,bicycling,driving）可选，默认{@code driving}
-     * @return : com.zeyuli.pojo.bo.Route
      */
     @Override
     public Route getRoute(String origin, String destination, String mode) {
