@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author 李泽聿
  */
 @ExtendWith(MockitoExtension.class)
-class StudentRouteServiceTest {
+class StudentRouteVoServiceTest {
     
     @Mock
     private StudentRouteService studentRouteService;

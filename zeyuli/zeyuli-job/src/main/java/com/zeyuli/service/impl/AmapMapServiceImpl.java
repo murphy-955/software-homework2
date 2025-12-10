@@ -3,6 +3,7 @@ package com.zeyuli.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zeyuli.enm.POIEnum;
 import com.zeyuli.pojo.bo.*;
+import com.zeyuli.pojo.bo.Route;
 import com.zeyuli.pojo.vo.*;
 import com.zeyuli.service.MapService;
 import com.zeyuli.util.JsonUtil;
@@ -32,6 +33,7 @@ public class AmapMapServiceImpl implements MapService {
     private static final String KEY = "0f874a8f530e4c8b18ed3b197e682be6"; // 需要替换为实际的高德地图API密钥
     private static final String BASE_URL = "https://restapi.amap.com/v3";
     private static final String DIRECTION_URL = "https://restapi.amap.com/v4/direction";
+    private static final String DIRECTION_URL_DRIVING = "https://restapi.amap.com/v3/direction";
     private static final String WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
     private static final String POI_DETAIL_URL = "https://restapi.amap.com/v3/place/detail";
 
@@ -214,13 +216,25 @@ public class AmapMapServiceImpl implements MapService {
                 return route;
             }
 
-            String url = DIRECTION_URL + "/" + type +
-                    "?origin=" + originPoint.formatLatAndLng() +
-                    "&destination=" + destinationPoint.formatLatAndLng() +
-                    "&key=" + getKey();
+            String url;
+            if (type.equals("driving")) {
+                // 驾车路径规划API
+                url = DIRECTION_URL_DRIVING + "/" + type +
+                        "?origin=" + originPoint.formatLatAndLng() +
+                        "&destination=" + destinationPoint.formatLatAndLng() +
+                        "&key=" + getKey();
+
+            } else {
+                url = DIRECTION_URL + "/" + type +
+                        "?origin=" + originPoint.formatLatAndLng() +
+                        "&destination=" + destinationPoint.formatLatAndLng() +
+                        "&key=" + getKey();
+            }
+
 
             String json = httpGet(url);
             log.info("路径规划结果: {}", json);
+            log.info("路径规划URL: {}", url);
 
             // 2. 解析JSON响应
             ObjectMapper mapper = new ObjectMapper();
@@ -234,61 +248,102 @@ public class AmapMapServiceImpl implements MapService {
 
             // 3. 提取路径数据
             GetRouteData data = jsonResponse.getData();
-            if (data == null || data.getPaths() == null || data.getPaths().isEmpty()) {
-                log.warn("路径规划无结果");
-                return route;
-            }
 
-            Paths firstPath = data.getPaths().getFirst();
+            if (type.equals("driving")) {
+                Paths paths = jsonResponse.getRouteVo().getPaths().getFirst();
+                route.setMode(mode);
+                route.setDistance(paths.getDistance());
+                route.setDuration(paths.getDuration());
 
-            // 4. 填充Route对象
-            route.setMode(mode);
-            route.setDistance(firstPath.getDistance());
-            route.setDuration(firstPath.getDuration());
+                // 设置起点和终点名称
+                route.setStartName(origin);
+                route.setEndName(destination);
 
-            // 设置起点和终点名称（这里需要根据实际情况获取，暂时设置为坐标）
-            route.setStartName(origin);
-            route.setEndName(destination);
+                // 转换Steps为RouteStep并构建完整polyline
+                List<RouteStep> routeSteps = new ArrayList<>();
+                StringBuilder fullPolyline = new StringBuilder();
 
-            // 5. 转换Steps为RouteStep并构建完整polyline
-            List<RouteStep> routeSteps = new ArrayList<>();
-            StringBuilder fullPolyline = new StringBuilder();
+                List<Steps> steps = paths.getSteps();
+                for (Steps step : steps) {
+                    // 创建RouteStep
+                    setRouteStep(mode, routeSteps, step);
 
-            List<Steps> steps = firstPath.getSteps();
-            for (Steps step : steps) {
-                // 创建RouteStep
-                RouteStep routeStep = new RouteStep();
-                routeStep.setInstruction(step.getInstruction());
-                routeStep.setDistance(step.getDistance());
-                routeStep.setDuration(step.getDuration());
-                routeStep.setMode(mode);
-                routeStep.setCost(0.0); // 骑行/步行通常无费用
-
-                routeSteps.add(routeStep);
-
-                // 构建完整polyline
-                if (step.getPolyline() != null && !step.getPolyline().isEmpty()) {
-                    if (!fullPolyline.isEmpty()) {
-                        fullPolyline.append(";");
+                    // 构建完整polyline
+                    if (step.getPolyline() != null && !step.getPolyline().isEmpty()) {
+                        if (!fullPolyline.isEmpty()) {
+                            fullPolyline.append(";");
+                        }
+                        fullPolyline.append(step.getPolyline());
                     }
-                    fullPolyline.append(step.getPolyline());
                 }
+
+                // ：将转换后的步骤和折线设置到返回对象中
+                route.setSteps(routeSteps);
+                route.setPolyline(fullPolyline.toString());
+
+                // 计算预估费用
+                double estimatedCost = calculateEstimatedCost(mode, paths.getDistance());
+                route.setEstimatedCost(estimatedCost);
+
+                log.info("【驾车】路径规划成功，距离: {}米，时长: {}秒", route.getDistance(), route.getDuration());
+
+            } else {
+                Paths firstPath = data.getPaths().getFirst();
+
+                // 4. 填充Route对象
+                route.setMode(mode);
+                route.setDistance(firstPath.getDistance());
+                route.setDuration(firstPath.getDuration());
+
+                // 设置起点和终点名称（这里需要根据实际情况获取，暂时设置为坐标）
+                route.setStartName(origin);
+                route.setEndName(destination);
+
+                // 5. 转换Steps为RouteStep并构建完整polyline
+                List<RouteStep> routeSteps = new ArrayList<>();
+                StringBuilder fullPolyline = new StringBuilder();
+
+                List<Steps> steps = firstPath.getSteps();
+                for (Steps step : steps) {
+                    // 创建RouteStep
+                    setRouteStep(mode, routeSteps, step);
+
+                    // 构建完整polyline
+                    if (step.getPolyline() != null && !step.getPolyline().isEmpty()) {
+                        if (!fullPolyline.isEmpty()) {
+                            fullPolyline.append(";");
+                        }
+                        fullPolyline.append(step.getPolyline());
+                    }
+                }
+
+                route.setSteps(routeSteps);
+                route.setPolyline(fullPolyline.toString());
+
+                // 6. 计算预估费用（根据不同的交通方式）
+                double estimatedCost = calculateEstimatedCost(mode, firstPath.getDistance());
+                route.setEstimatedCost(estimatedCost);
+
+                log.info("路径规划成功，距离: {}米，时长: {}秒", route.getDistance(), route.getDuration());
+
             }
-
-            route.setSteps(routeSteps);
-            route.setPolyline(fullPolyline.toString());
-
-            // 6. 计算预估费用（根据不同的交通方式）
-            double estimatedCost = calculateEstimatedCost(mode, firstPath.getDistance());
-            route.setEstimatedCost(estimatedCost);
-
-            log.info("路径规划成功，距离: {}米，时长: {}秒", route.getDistance(), route.getDuration());
 
         } catch (Exception e) {
             log.error("获取路线失败", e);
         }
 
         return route;
+    }
+
+    private void setRouteStep(String mode, List<RouteStep> routeSteps, Steps step) {
+        RouteStep routeStep = new RouteStep();
+        routeStep.setInstruction(step.getInstruction());
+        routeStep.setDistance(step.getDistance());
+        routeStep.setDuration(step.getDuration());
+        routeStep.setMode(mode);
+        routeStep.setCost(0.0); // 驾车路径规划无费用
+
+        routeSteps.add(routeStep);
     }
 
     /**

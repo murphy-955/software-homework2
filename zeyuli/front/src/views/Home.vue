@@ -176,7 +176,7 @@
 <script setup>
 import { ref, nextTick, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
-import { planByBudget } from "../api/itinerary";
+import {planByBudget, planItinerary} from "../api/itinerary";
 
 const router = useRouter();
 
@@ -249,8 +249,15 @@ const startPlanning = async () => {
   adjustTextareaHeight();
 
   try {
-    const params = { city: "北京", days: 3, budget: 1500 };
-    const result = await planByBudget(params, {});
+    const params = {
+      startCity: "北京",
+      endCity: "上海",
+      startDate:"2025-10-25",
+      endDate: "2025-10-30",
+      token: localStorage.getItem('token') || '',
+      userInput: text
+    };
+    const result = await planItinerary(params, {});
     localStorage.setItem("currentItinerary", JSON.stringify(result));
 
     await pushMsg("assistant", "行程规划完成！已为你生成了详细行程，点击下方查看完整行程单。");

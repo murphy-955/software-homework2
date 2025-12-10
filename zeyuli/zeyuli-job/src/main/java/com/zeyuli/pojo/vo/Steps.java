@@ -1,6 +1,8 @@
 package com.zeyuli.pojo.vo;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 
 /**
@@ -11,9 +13,10 @@ import lombok.Data;
  */
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Steps {
-    private String action;
-    private String assistant_action;
+    private JsonNode action;
+    private JsonNode assistant_action;
     private int distance;
     private int duration;
     private String instruction;
