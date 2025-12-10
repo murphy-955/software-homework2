@@ -27,7 +27,7 @@ import java.util.HashMap;
 @Service
 @Slf4j
 public class PersonalityTestServiceImpl implements PersonalityTestService {
-    
+
     @Autowired
     @Qualifier("amapMapService")
     private MapService mapService;
@@ -113,7 +113,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         
         // 获取人格类型详情
         PersonalityTest.PersonalityType type = personalityTypeMap.get(personalityType);
-        
+        System.out.println("人格类型"+type);  //min 3  max 5
         ItineraryPlanVO plan = new ItineraryPlanVO();
         plan.setPlanName(city + " " + days + "日游（" + type.getTypeName() + "风格）");
         plan.setCity(city);
@@ -138,7 +138,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         for (int i = 0; i < days; i++) {
             ItineraryPlanVO.DailyItinerary dailyPlan = new ItineraryPlanVO.DailyItinerary();
             dailyPlan.setDay(i + 1);
-            dailyPlan.setWeather("晴朗"); // 模拟天气
+            dailyPlan.setWeather(mapService.getWeatherInfo(city)); // 模拟天气
             
             // 根据人格类型选择当日景点数量
             int attractionsCount = selectDailyAttractionsCount(minAttractionsPerDay, maxAttractionsPerDay, i, days);
@@ -153,16 +153,17 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
             
             // 根据人格类型选择交通方式
             String preferredTransport = selectTransportByPersonality(type, dayAttractions);
+            System.out.println("选择的交通方式"+preferredTransport);
             
             // 规划路线
             List<Route> dayRoutes = planDailyRoutesByPersonality(dayAttractions, preferredTransport, type);
             dailyPlan.setRoutes(dayRoutes);
-            
+            System.out.println("规划的路线"+dayRoutes);
             // 计算当日费用
             double dailyCost = calculateDailyCostByPersonality(dayAttractions, dayRoutes, type);
             dailyPlan.setDailyCost(dailyCost);
             totalCost += dailyCost;
-            
+            System.out.println("当日费用"+dailyCost);
             // 添加符合人格特质的建议
             List<String> suggestions = generatePersonalitySuggestions(type, dayAttractions.size());
             dailyPlan.setSuggestions(suggestions);
@@ -652,10 +653,9 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         for (Map.Entry<String, Integer> entry : attractionWeights.entrySet()) {
             String key = entry.getKey();
             int weight = entry.getValue();
-            if (weight <= 0) {
+            if (weight <= 3) {
                 continue; // 跳过权重≤0的类型
             }
-
             // 按权重比例分配数量（权重越高，数量越多）
             int allocateCount = (int) Math.round((double) weight / totalWeight * totalCount);
             if (allocateCount < 1) {
@@ -665,7 +665,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
             // 4. 根据Key获取对应类型的景点（精准关键词映射）
             List<Location> locations = getLocationsByKey(key, city, allocateCount);
             List<POI> pois = convertLocationToPOI(locations);
-
             // 5. 去重并添加到总列表
             for (POI poi : pois) {
                 if (!attractionNames.contains(poi.getName()) && allAttractions.size() < totalCount) {
@@ -686,7 +685,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
                 }
             }
         }
-
         log.info("最终生成景点数量：{}（目标：{}）", allAttractions.size(), totalCount);
         return allAttractions;
     }
@@ -701,9 +699,9 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
     private List<Location> getLocationsByKey(String key, String city, int count) {
         return switch (key) {
             case "自然风光" -> mapService.searchLocations("自然风光", city, count);
-            case "历史文化" -> mapService.searchLocations("历史古迹", city, count);
-            case "小众景点" -> mapService.searchLocations("小众打卡点", city, count);
-            case "特色街区" -> mapService.searchLocations("步行街", city, count);
+            case "历史文化" -> mapService.searchLocations("博物馆", city, count);
+            case "小众景点" -> mapService.searchLocations("小众景点", city, count);
+            case "特色街区" -> mapService.searchLocations("特色街区", city, count);
             // 可扩展其他类型（如“美食街”“主题乐园”）
             default -> mapService.searchLocations(key, city, count);
         };
@@ -770,10 +768,10 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         
         POI currentLocation = attractions.get(0);
         List<POI> remainingAttractions = new ArrayList<>(attractions.subList(1, attractions.size()));
-        
+        System.out.println("剩余景点"+remainingAttractions);
+
         while (!remainingAttractions.isEmpty()) {
             POI nextAttraction;
-            
             // 冒险者和探险家选择最近的景点
             if (type.getTypeCode().equals("ADVENTURER") || type.getTypeCode().equals("EXPLORER")) {
                 nextAttraction = findNearestAttraction(currentLocation, remainingAttractions);
@@ -781,10 +779,9 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
                 // 其他类型随机选择或按顺序
                 nextAttraction = remainingAttractions.get(0);
             }
-            
-            String origin = currentLocation.getLng() + "," + currentLocation.getLat();
-            String destination = nextAttraction.getLng() + "," + nextAttraction.getLat();
-            
+            String origin = currentLocation.getName();
+            String destination = nextAttraction.getName();
+            System.out.println("计算路线" + origin + "到" + destination);
             Route route = mapService.getRoute(origin, destination, transportMode);
             if (route != null) {
                 routes.add(route);
@@ -801,10 +798,9 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
     private POI findNearestAttraction(POI current, List<POI> attractions) {
         POI nearest = null;
         double minDistance = Double.MAX_VALUE;
-        
         for (POI attraction : attractions) {
-            String origin = current.getLng() + "," + current.getLat();
-            String destination = attraction.getLng() + "," + attraction.getLat();
+            String origin = current.getLat() + "," + current.getLng();
+            String destination = attraction.getLat() + "," + attraction.getLng();
             double distance = mapService.getDistance(origin, destination);
             
             if (distance < minDistance) {
@@ -812,7 +808,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
                 nearest = attraction;
             }
         }
-        
+        System.out.println("最近景点"+nearest);
         return nearest;
     }
     
