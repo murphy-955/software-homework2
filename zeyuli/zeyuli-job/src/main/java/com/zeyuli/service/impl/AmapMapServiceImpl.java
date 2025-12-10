@@ -780,8 +780,8 @@ public class AmapMapServiceImpl implements MapService {
                 POI poi = new POI();
                 poi.setName(i.getName());
                 String[] split = i.getLocation().split(",");
-                poi.setLat(Double.parseDouble(split[1]));
-                poi.setLng(Double.parseDouble(split[0]));
+                poi.setLat(Double.parseDouble(split[0]));
+                poi.setLng(Double.parseDouble(split[1]));
                 attractions.add(poi);
             }
             return attractions;
