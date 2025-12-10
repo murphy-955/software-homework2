@@ -2,24 +2,23 @@ package com.zeyuli.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zeyuli.enm.POIEnum;
 import com.zeyuli.pojo.bo.*;
-import com.zeyuli.pojo.vo.GaodeAddress;
-import com.zeyuli.pojo.vo.Geocodes;
-import com.zeyuli.pojo.vo.POIAddress;
-import com.zeyuli.pojo.vo.Pois;
+import com.zeyuli.pojo.vo.*;
 import com.zeyuli.service.MapService;
+import com.zeyuli.util.JsonUtil;
+import com.zeyuli.util.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 高德地图服务实现
@@ -36,7 +35,7 @@ public class AmapMapServiceImpl implements MapService {
     private static final String DIRECTION_URL = "https://restapi.amap.com/v3/direction";
     private static final String WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
     private static final String POI_DETAIL_URL = "https://restapi.amap.com/v3/place/detail";
-    
+
     // 获取API密钥的方法，便于未来实现密钥管理
     private String getKey() {
         return KEY;
@@ -76,10 +75,10 @@ public class AmapMapServiceImpl implements MapService {
      * }}
      * </pre>
      *
-     * @author : 李泽聿
-     * @since : 2025-12-08 08:20
      * @param location 地址
      * @return : com.zeyuli.pojo.bo.Point
+     * @author : 李泽聿
+     * @since : 2025-12-08 08:20
      */
     @Override
     public Point getMapCenter(String location) {
@@ -88,7 +87,7 @@ public class AmapMapServiceImpl implements MapService {
             String url = BASE_URL + "/geocode/geo?address=" + URLEncoder.encode(location, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
             if (result.contains("location")) {
-                ObjectMapper mapper =new ObjectMapper();
+                ObjectMapper mapper = new ObjectMapper();
                 GaodeAddress gaodeAddress = mapper.readValue(result, GaodeAddress.class);
                 // 获取location
                 Geocodes geocodes = gaodeAddress.getGeocodes().getFirst();
@@ -107,12 +106,12 @@ public class AmapMapServiceImpl implements MapService {
             String url = BASE_URL + "/geocode/geo?address=" + URLEncoder.encode(cityName, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
             if (result.contains("location")) {
-                ObjectMapper mapper =new ObjectMapper();
+                ObjectMapper mapper = new ObjectMapper();
                 GaodeAddress gaodeAddress = mapper.readValue(result, GaodeAddress.class);
                 // 获取location
                 Geocodes geocodes = gaodeAddress.getGeocodes().getFirst();
                 // 解析location
-                return geocodes.getCitycode();
+                return JsonUtil.text(geocodes.getAdcode());
             }
         } catch (Exception e) {
             log.error("获取城市编码失败: {}", e.getMessage());
@@ -122,11 +121,11 @@ public class AmapMapServiceImpl implements MapService {
 
     /**
      *
-     * @author : 李泽聿
-     * @since : 2025-12-08 08:56
-     * @param query 搜索关键词
+     * @param query  搜索关键词
      * @param region 区域
      * @return : java.util.List<com.zeyuli.pojo.bo.Location>
+     * @author : 李泽聿
+     * @since : 2025-12-08 08:56
      */
     @Override
     public List<Location> searchLocations(String query, String region) {
@@ -134,7 +133,7 @@ public class AmapMapServiceImpl implements MapService {
         try {
             // 搜索POI
             String url = BASE_URL + "/place/text?keywords=" + URLEncoder.encode(query, StandardCharsets.UTF_8) + "&region=" +
-                         URLEncoder.encode(region, StandardCharsets.UTF_8) + "&key=" + getKey();
+                    URLEncoder.encode(region, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
             ObjectMapper mapper = new ObjectMapper();
             POIAddress poiAddress = mapper.readValue(result, POIAddress.class);
@@ -164,19 +163,38 @@ public class AmapMapServiceImpl implements MapService {
     }
 
     /**
-     * 规划路线
+     * 根据名称搜索位置，并限制数量
      *
+     * @param query  搜索关键词
+     * @param region 区域
+     * @param coount 搜索数量
+     * @return : java.util.List<com.zeyuli.pojo.bo.Location>
      * @author : 李泽聿
-     * @since : 2025-12-08 09:51
-     * @param origin 起点
-     * @param destination 终点
-     * @param mode 交通方式
-     * @return : com.zeyuli.pojo.bo.Route
+     * @since : 2025-12-09 19:24
      */
     @Override
-    // todo 待测试
+    public List<Location> searchLocations(String query, String region, int coount) {
+        List<Location> locations = searchLocations(query, region);
+        if (locations.size() > coount) {
+            return locations.subList(0, coount);
+        }
+        return locations;
+    }
+
+    /**
+     * 规划路线
+     *
+     * @param origin      起点
+     * @param destination 终点
+     * @param mode        交通方式
+     * @return : com.zeyuli.pojo.bo.Route
+     * @author : 李泽聿
+     * @since : 2025-12-08 09:51
+     */
+    @Override
     public Route getRoute(String origin, String destination, String mode) {
         Route route = new Route();
+        log.info("获取路径规划: {} -> {}", origin, destination);
         try {
             // 1. 构造 URL
             String type = switch (mode.toLowerCase()) {
@@ -185,8 +203,15 @@ public class AmapMapServiceImpl implements MapService {
                 case "bicycling" -> "bicycling";
                 default -> "driving";
             };
+            // 将城市解析成经纬度
+            Point originPoint = getMapCenter(origin);
+            Point destinationPoint = getMapCenter(destination);
+            if (originPoint == null || destinationPoint == null) {
+                log.warn("路径规划失败：无法解析起点或终点");
+                return route;
+            }
             String url = DIRECTION_URL + "/" + type +
-                    "?origin=" + origin + "&destination=" + destination + "&key=" + getKey();
+                    "?origin=" + originPoint.formatLatAndLng() + "&destination=" + destinationPoint.formatLatAndLng() + "&key=" + getKey();
             String json = httpGet(url);
 
             // 2. 解析
@@ -201,11 +226,11 @@ public class AmapMapServiceImpl implements MapService {
             JsonNode path = root.at("/route/paths/0");
             if (path == null || path.isMissingNode()) return route;
 
-            double distance = path.get("distance").asDouble();          // 米
-            double duration = path.get("duration").asDouble();          // 秒
-            String polyline = path.get("polyline").asText();            // 轨迹
-            String startName = path.at("/origin/name").asText("起点");
-            String endName = path.at("/destination/name").asText("终点");
+            double distance = path.path("distance").asDouble(0);          // 米
+            double duration = path.path("duration").asDouble(0);          // 秒
+            String polyline = path.path("polyline").asText("");           // 轨迹
+            String startName = root.at("/route/origin/name").asText("起点");
+            String endName = root.at("/route/destination/name").asText("终点");
 
             // 4. 填充 Route
             route.setMode(mode);
@@ -250,13 +275,24 @@ public class AmapMapServiceImpl implements MapService {
         return route;
     }
 
+    /**
+     * 获取周边的相关POI情况
+     *
+     * @param location 当前位置(必须提供经纬度)
+     * @param radius   半径(单位：米)
+     * @param types    POI类型{@link com.zeyuli.enm.POIEnum}(前端返回格式：190203|190204)
+     * @return : java.util.List<com.zeyuli.pojo.bo.POI>
+     * @author : 李泽聿
+     * @since : 2025-12-08 11:12
+     */
     @Override
+    // todo 待实现
     public List<POI> getSurroundingPOIs(String location, String radius, String types) {
         List<POI> pois = new ArrayList<>();
         try {
             // 周边搜索API
-            String url = BASE_URL + "/place/around?location=" + location + "&radius=" + radius + 
-                         "&types=" + types + "&key=" + getKey();
+            String url = BASE_URL + "/place/around?location=" + location + "&radius=" + radius +
+                    "&types=" + types + "&key=" + getKey();
             String result = httpGet(url);
             // 解析JSON响应，简化处理
             log.info("周边POI搜索结果: {}", result);
@@ -267,55 +303,177 @@ public class AmapMapServiceImpl implements MapService {
         return pois;
     }
 
+    /**
+     * 获取高德地图静态截图
+     *
+     * @param center 地图中心点坐标，格式：经度,纬度（例如：116.473168,39.993015）
+     * @param zoom   缩放级别，范围：1-17（1为世界，17为街道）
+     * @param width  图片宽度，范围：1-1024（像素）
+     * @param height 图片高度，范围：1-1024（像素）
+     * @return 静态地图图片的URL
+     * @author : 李泽聿
+     * @since : 2025-12-09 19:35
+     */
     @Override
     public String getMapScreenshot(String center, String zoom, String width, String height) {
         try {
-            // 静态地图API
-            String url = BASE_URL + "/staticmap?location=" + center + "&zoom=" + zoom + "&size=" + width + "," + height + "&key=" + getKey();
-            // 返回图片URL
-            return url;
-        } catch (Exception e) {
-            log.error("获取地图截图失败: {}", e.getMessage());
-        }
-        return "";
-    }
+            // 参数验证
+            if (StringUtils.isEmpty(center) || StringUtils.isEmpty(zoom)
+                    || StringUtils.isEmpty(width) || StringUtils.isEmpty(height)) {
+                log.error("静态地图参数不能为空");
+                return "";
+            }
 
-    @Override
-    public String getWeatherInfo(String cityCode) {
-        try {
-            String url = WEATHER_URL + "?city=" + cityCode + "&key=" + getKey();
-            return httpGet(url);
+            // 验证坐标格式
+            if (!center.matches("^\\d+(\\.\\d+)?,\\d+(\\.\\d+)?$")) {
+                log.error("中心点坐标格式错误: {}", center);
+                return "";
+            }
+
+            // 验证缩放级别（1-17）
+            int zoomInt = Integer.parseInt(zoom);
+            if (zoomInt < 1 || zoomInt > 17) {
+                log.error("缩放级别超出范围（1-17）: {}", zoom);
+                return "";
+            }
+
+            // 验证图片尺寸（1-1024）
+            int widthInt = Integer.parseInt(width);
+            int heightInt = Integer.parseInt(height);
+            if (widthInt < 1 || widthInt > 1024 || heightInt < 1 || heightInt > 1024) {
+                log.error("图片尺寸超出范围（1-1024）: {}x{}", width, height);
+                return "";
+            }
+
+            // 构建静态地图API URL
+            String url = String.format("%s/staticmap?location=%s&zoom=%s&size=%s*%s&key=%s",
+                    BASE_URL,
+                    URLEncoder.encode(center, StandardCharsets.UTF_8),
+                    URLEncoder.encode(zoom, StandardCharsets.UTF_8),
+                    URLEncoder.encode(width, StandardCharsets.UTF_8),
+                    URLEncoder.encode(height, StandardCharsets.UTF_8),
+                    getKey()
+            );
+
+            log.info("静态地图URL: {}", url);
+
+            // 可选：验证URL是否有效（可以发送HEAD请求检查）
+            if (isUrlValid(url)) {
+                return url;
+            } else {
+                log.error("静态地图URL无效");
+                return "";
+            }
+
+        } catch (NumberFormatException e) {
+            log.error("参数格式转换失败: {}", e.getMessage());
+            return "";
         } catch (Exception e) {
-            log.error("获取天气信息失败: {}", e.getMessage());
-            return null;
+            log.error("获取地图截图失败: {}", e.getMessage(), e);
+            return "";
         }
     }
 
     /**
+     * 验证URL是否有效
+     */
+    private boolean isUrlValid(String url) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setRequestMethod("HEAD");
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(3000);
+            int responseCode = connection.getResponseCode();
+            return responseCode == 200; // HTTP 200 OK
+        } catch (Exception e) {
+            log.warn("URL验证失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 获取城市天气信息
+     *
+     * @param cityCode 城市码（可以是城市编码或城市名称）
+     * @return 天气信息JSON字符串，或null（失败时）
+     * @author : 李泽聿
+     * @since : 2025-12-09 19:50
+     */
+    @Override
+    public String getWeatherInfo(String cityCode) {
+        try {
+            // 参数验证
+            if (StringUtils.isBlank(cityCode)) {
+                log.error("城市码不能为空");
+                return "城市码不能为空";
+            }
+
+            // 清理参数
+            cityCode = cityCode.trim();
+
+            // 判断cityCode是编码还是城市名，并进行相应处理
+            String encodedCity = URLEncoder.encode(cityCode, "UTF-8");
+
+            // 构建URL - 实时天气API
+            String url = WEATHER_URL + "?city=" + encodedCity + "&key=" + getKey() + "&extensions=base";
+            log.info("天气API请求URL: {}", url);
+
+            // 发送HTTP请求
+            String response = httpGet(url);
+
+            if (StringUtils.isBlank(response)) {
+                log.error("天气API返回空响应");
+                return "网络错误";
+            }
+
+            log.info("天气API返回: {}", response);
+
+            // 解析响应，验证状态
+            ObjectMapper mapper = new ObjectMapper();
+            WeatherInfoVo jsonResponse = mapper.readValue(response, WeatherInfoVo.class);
+            String status = jsonResponse.getStatus();
+
+            if (!"1".equals(status)) {
+                String info = jsonResponse.getInfo();
+                String infocode = jsonResponse.getInfocode();
+                log.error("天气API调用失败: {}, 错误码: {}", info, infocode);
+            }
+
+            // 返回完整的响应（可以是JSON字符串，也可以处理后返回）
+            List<LivesVo> lives = jsonResponse.getLives();
+            return lives.getFirst().getWeather();
+
+        } catch (Exception e) {
+            log.error("获取天气信息失败: {}", e.getMessage(), e);
+        }
+        return "获取天气信息失败";
+    }
+
+
+    /**
      * 计算交通费用
-     * @param mode 交通方式
+     *
+     * @param mode     交通方式
      * @param distance 距离（米）
      * @param duration 时长（秒）
      * @return 预估费用
      */
     private double calculateCost(String mode, double distance, double duration) {
-        switch (mode.toLowerCase()) {
-            case "driving":
+        return switch (mode.toLowerCase()) {
+            case "driving" ->
                 // 驾车费用估算：0.8元/公里
-                return (distance / 1000) * 0.8;
-            case "transit":
+                    (distance / 1000) * 0.8;
+            case "transit" ->
                 // 公共交通费用估算：固定费用+距离费用
-                return 3 + (distance / 10000) * 2;
-            case "walking":
-            case "bicycling":
-                return 0;
-            default:
-                return 0;
-        }
+                    3 + (distance / 10000) * 2;
+            case "walking", "bicycling" -> 0;
+            default -> 0;
+        };
     }
 
     /**
      * 发送HTTP GET请求
+     *
      * @param urlString URL地址
      * @return 响应内容
      */
@@ -326,7 +484,7 @@ public class AmapMapServiceImpl implements MapService {
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
-        
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -338,31 +496,100 @@ public class AmapMapServiceImpl implements MapService {
         return result.toString();
     }
 
+    /**
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-09 21:01
+     * @param lat 维度
+     * @param lng 经度
+     * @return : java.lang.String
+     */
     @Override
     public String getAddressByLocation(double lat, double lng) {
         try {
-            String url = BASE_URL + "/geocode/regeo?location=" + lng + "," + lat + "&key=" + getKey();
-            return httpGet(url);
+            // 格式化为高德API要求的精度（通常6位小数足够）
+            String location = String.format("%.6f,%.6f", lat, lng);
+
+            // 构建URL - 逆地理编码API
+            String url = String.format("%s/geocode/regeo?location=%s&key=%s&extensions=%s&poitype=%s&radius=%s&roadlevel=%s",
+                    BASE_URL,
+                    URLEncoder.encode(location, StandardCharsets.UTF_8),
+                    getKey(),
+                    "base",       // 默认返回基本地址信息
+                    "all",        // 返回所有类型的POI
+                    "1000",       // 搜索半径（米）
+                    "0"           // 道路等级：0-全部，1-高速公路，2-国道，3-省道，4-县道
+            );
+
+            log.info("逆地理编码API请求URL: {}", url.replace(getKey(), "***")); // 安全日志
+
+            // 发送HTTP请求
+            String response = httpGet(url);
+
+            if (StringUtils.isBlank(response)) {
+                log.error("逆地理编码API返回空响应");
+                return "网络错误";
+            }
+
+            log.debug("逆地理编码API返回: {}", response);
+
+            // 解析响应，验证状态
+            ObjectMapper mapper = new ObjectMapper();
+            ReverseCodingVo res = mapper.readValue(response, ReverseCodingVo.class);
+
+            if (!"1".equals(res.getStatus())) {
+                String info = res.getInfo();
+                String infocode = res.getInfocode();
+                log.error("逆地理编码API调用失败: {}, 错误码: {}", info, infocode);
+                return "网络错误";
+            }
+
+            // 完整地址
+            return res.getRegeocode().getFormatted_address();
+
         } catch (Exception e) {
-            log.error("获取地址信息失败: {}", e.getMessage());
-            return null;
+            log.error("获取地址信息失败: {}", e.getMessage(), e);
+            return "网络错误";
         }
     }
 
+    /**
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-09 21:20
+     * @param origin 经度,纬度（例如：116.473168,39.993015）
+     * @param destination 经度,纬度（例如：116.473168,39.993015）
+     * @return : double 计算的距离，单位：米，-1表示失败
+     */
     @Override
     public double getDistance(String origin, String destination) {
         try {
-            String url = BASE_URL + "/distance?origins=" + origin + "&destination=" + destination + "&type=1&key=" + getKey();
+            // 参数验证
+            if (StringUtils.isBlank(origin) || StringUtils.isBlank(destination)) {
+                log.error("起点或终点不能为空");
+                return -1;
+            }
+
+            // 这里使用type=1（驾车路径距离），因为直线距离太简单，驾车距离更实用
+            String url = String.format("%s/distance?origins=%s&destination=%s&type=%d&key=%s",
+                    BASE_URL,
+                    URLEncoder.encode(origin, "UTF-8"),
+                    URLEncoder.encode(destination, "UTF-8"),
+                    1,  // 驾车距离
+                    getKey()
+            );
             String result = httpGet(url);
             // 解析JSON响应，简化处理
-            log.info("距离计算结果: {}", result);
-            return 0; // 实际实现需要解析结果
+            ObjectMapper mapper = new ObjectMapper();
+            DistanceVo jsonResponse = mapper.readValue(result, DistanceVo.class);
+            log.info("距离API返回: {}", jsonResponse.getResults().getFirst().getDistance());
+            return Double.parseDouble(jsonResponse.getResults().getFirst().getDistance());
         } catch (Exception e) {
             log.error("获取距离失败: {}", e.getMessage());
             return -1;
         }
     }
-    
+
     @Override
     public Map<String, Object> getPOIDetails(String poiId) {
         Map<String, Object> details = new HashMap<>();
@@ -380,15 +607,15 @@ public class AmapMapServiceImpl implements MapService {
         }
         return details;
     }
-    
+
     @Override
     public List<POI> getAttractionsByCity(String city, int page, int pageSize) {
         List<POI> attractions = new ArrayList<>();
         try {
             // 搜索城市的景点，types参数设置为景点类型
-            String url = BASE_URL + "/place/text?keywords=景点&types=110000&city=" + 
-                         URLEncoder.encode(city, "UTF-8") + "&offset=" + pageSize + "&page=" + 
-                         page + "&key=" + getKey();
+            String url = BASE_URL + "/place/text?keywords=景点&types=110000&city=" +
+                    URLEncoder.encode(city, "UTF-8") + "&offset=" + pageSize + "&page=" +
+                    page + "&key=" + getKey();
             String result = httpGet(url);
             log.info("城市景点搜索结果: {}", result);
             // 实际实现需要解析JSON并构建POI对象列表
@@ -397,4 +624,23 @@ public class AmapMapServiceImpl implements MapService {
         }
         return attractions;
     }
+
+    /**
+     * 获取POI类型列表
+     *
+     * @return : java.util.Map<java.lang.String,java.lang.Object>
+     * @author : 李泽聿
+     * @since : 2025-12-09 09:55
+     */
+    @Override
+    public Map<String, Object> getPOIDetailsList() {
+        ArrayList<Object> res = new ArrayList<>();
+        for (POIEnum poiEnum : POIEnum.values()) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put(poiEnum.getCode(), poiEnum.getName());
+            res.add(map);
+        }
+        return Response.success(res);
+    }
+
 }

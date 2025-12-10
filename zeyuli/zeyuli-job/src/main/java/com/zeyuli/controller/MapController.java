@@ -99,4 +99,16 @@ public class MapController {
                                        @RequestParam(defaultValue = "10") int pageSize) {
         return mapService.getAttractionsByCity(city, page, pageSize);
     }
+
+    @ApiOperation(value = "获取POI详情", notes = "获取指定POI的详细信息列表")
+    @GetMapping("/poi-details-list")
+    public Map<String, Object> getPOIDetails() {
+        return mapService.getPOIDetailsList();
+    }
+
+    @ApiOperation(value = "获取cityCode",notes = "获取城市编码")
+    @GetMapping("/city-code")
+    public String getCityCode(@RequestParam String cityName){
+        return mapService.getCityCode(cityName);
+    }
 }
