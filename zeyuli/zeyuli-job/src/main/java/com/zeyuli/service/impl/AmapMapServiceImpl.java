@@ -135,6 +135,7 @@ public class AmapMapServiceImpl implements MapService {
             String url = BASE_URL + "/place/text?keywords=" + URLEncoder.encode(query, StandardCharsets.UTF_8) + "&region=" +
                     URLEncoder.encode(region, StandardCharsets.UTF_8) + "&key=" + getKey();
             String result = httpGet(url);
+            log.info("搜索位置结果: {}",url);
             ObjectMapper mapper = new ObjectMapper();
             POIAddress poiAddress = mapper.readValue(result, POIAddress.class);
 

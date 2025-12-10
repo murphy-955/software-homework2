@@ -1,9 +1,8 @@
 package com.zeyuli.pojo.vo;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
-
-import java.util.List;
 
 /**
  *
@@ -13,6 +12,6 @@ import java.util.List;
  */
 @Data
 public class SuggestionVo {
-    private List<String> keywords;
-    private List<String> cities;
+    private JsonNode keywords;
+    private JsonNode cities;
 }
