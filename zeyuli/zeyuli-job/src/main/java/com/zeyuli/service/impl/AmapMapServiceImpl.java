@@ -181,6 +181,7 @@ public class AmapMapServiceImpl implements MapService {
         if (locations.size() > coount) {
             return locations.subList(0, coount);
         }
+        System.out.println(query+locations);
         return locations;
     }
 
@@ -211,6 +212,8 @@ public class AmapMapServiceImpl implements MapService {
             Point originPoint = getMapCenter(origin);
             Point destinationPoint = getMapCenter(destination);
 
+
+
             if (originPoint == null || destinationPoint == null) {
                 log.warn("路径规划失败：无法解析起点或终点");
                 return route;
@@ -233,7 +236,6 @@ public class AmapMapServiceImpl implements MapService {
 
 
             String json = httpGet(url);
-            log.info("路径规划结果: {}", json);
             log.info("路径规划URL: {}", url);
 
             // 2. 解析JSON响应
@@ -651,6 +653,7 @@ public class AmapMapServiceImpl implements MapService {
                 log.error("起点或终点不能为空");
                 return -1;
             }
+            System.out.println(origin+","+destination);
 
             // 这里使用type=1（驾车路径距离），因为直线距离太简单，驾车距离更实用
             String url = String.format("%s/distance?origins=%s&destination=%s&type=%d&key=%s",
@@ -664,8 +667,8 @@ public class AmapMapServiceImpl implements MapService {
             // 解析JSON响应，简化处理
             ObjectMapper mapper = new ObjectMapper();
             DistanceVo jsonResponse = mapper.readValue(result, DistanceVo.class);
-            log.info("距离API返回: {}", jsonResponse.getResults().getFirst().getDistance());
-            return Double.parseDouble(jsonResponse.getResults().getFirst().getDistance());
+            log.info("距离API返回: {}", jsonResponse.getResults().get(0).getDistance());
+            return Double.parseDouble(jsonResponse.getResults().get(0).getDistance());
         } catch (Exception e) {
             log.error("获取距离失败: {}", e.getMessage());
             return -1;
@@ -839,6 +842,7 @@ public class AmapMapServiceImpl implements MapService {
                 poi.setLng(Double.parseDouble(split[1]));
                 attractions.add(poi);
             }
+            System.out.println("景点补全 " + attractions);
             return attractions;
         } catch (Exception e) {
             log.error("获取城市景点列表失败: {}", e.getMessage());
