@@ -280,16 +280,42 @@ const escapeHtml = (unsafe = "") =>
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
+// todo
 const renderMarkdown = (text = "", isFinal = true) => {
   const raw = text || "";
 
   if (!raw) return "";
 
   if (isFinal) {
-    const html = md.render(raw);
-    return DOMPurify.sanitize(html);
+    // Parse the JSON data from the markdown if applicable
+    try {
+      const data = JSON.parse(raw);
+
+      // Format the data into markdown
+      const formattedMarkdown = data.days.map(day => {
+        let dayMarkdown = `## ${day.label} (${day.date})\n\n`;
+
+        day.items.forEach(item => {
+          dayMarkdown += `### ${item.title} (${item.time})\n`;
+          dayMarkdown += `- **Description:** ${item.description}\n`;
+          dayMarkdown += `- **Attractions:** ${item.attractions}\n`;
+          dayMarkdown += `- **Cost:** ${item.cost}\n`;
+          dayMarkdown += `- **Duration:** ${item.durationHours} hours\n\n`;
+        });
+
+        return dayMarkdown;
+      }).join("\n");
+
+      // Render the formatted markdown and sanitize it
+      const html = md.render(formattedMarkdown);
+      return DOMPurify.sanitize(html);
+
+    } catch (error) {
+      return "Invalid data format.";
+    }
   }
 
+  // Handling live markdown parsing (e.g., stream-like behavior)
   const fenceRegex = /```/g;
   let match;
   const indices = [];
@@ -316,6 +342,7 @@ const renderMarkdown = (text = "", isFinal = true) => {
 
   return DOMPurify.sanitize(stableHtml + tailHtml);
 };
+
 
 const isStreamingAssistant = (m) =>
     m.role === "assistant" && m.id.startsWith("temp-");
