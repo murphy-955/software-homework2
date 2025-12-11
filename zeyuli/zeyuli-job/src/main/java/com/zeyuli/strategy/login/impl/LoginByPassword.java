@@ -32,7 +32,7 @@ public class LoginByPassword implements LoginStrategyInterface {
     @Override
     public Map<String, Object> login(UserVo vo) {
 
-        User res = userMapper.login(vo.getUsername(), vo.getPassword());
+        User res = userMapper.login(vo.getUserName(), vo.getPassword());
         System.out.println(res);
         if (res != null) {
             System.out.println(res);
