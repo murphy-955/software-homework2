@@ -1,6 +1,8 @@
 server:
   port: 8080
-
+logging:
+  level:
+    reactor.netty: DEBUG
 spring:
   ai:
     openai:
@@ -10,6 +12,8 @@ spring:
         options:
           model: deepseek-chat
           temperature: 0.7
+    retry:
+      max-attempts: 1
 
   datasource:
     druid:
@@ -25,9 +29,10 @@ mybatis:
   configuration:
     auto-mapping-behavior: full
     map-underscore-to-camel-case: true
-#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   type-aliases-package: com.zeyuli.pojo
   mapper-locations: classpath:/mappers/*.xml
+
 
 DeekSeek:
   role: "你是一个熟悉全国各地风土人情，地方习俗，美食美景的旅游助手。根据用户的旅游目的地{endCity}，提供精准的旅游攻略。"

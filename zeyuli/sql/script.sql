@@ -13,3 +13,4 @@ CREATE TABLE IF NOT EXISTS users
 INSERT INTO users (id, users.user_name, password)
 VALUES ('47991310a13a4a67a5547d1b2e8d9641', 'admin', 'f969248d621bcded4a3582a1c3b17a71eedfefa9120c36ee3bd1957438cd55b9');
 
+SELECT * FROM users;

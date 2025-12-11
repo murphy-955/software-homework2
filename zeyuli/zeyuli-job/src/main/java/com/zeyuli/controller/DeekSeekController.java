@@ -2,6 +2,8 @@ package com.zeyuli.controller;
 
 
 import com.zeyuli.pojo.UserItineraryPlan;
+import com.zeyuli.pojo.vo.FormatedMarkdownVo;
+import com.zeyuli.pojo.vo.UserFormateVo;
 import com.zeyuli.service.DeekSeekService;
 import com.zeyuli.service.impl.DeekSeekServiceImpl;
 import io.swagger.annotations.ApiOperation;
@@ -40,5 +42,11 @@ public class DeekSeekController {
                              @RequestParam("token") String token,
                              @RequestParam(value = "userInput",defaultValue = "")String userInput) {
         return deekSeekService.chat(userInput,token,startCity, endCity, startDate, endDate);
+    }
+
+    @ApiOperation(value = "格式化用户输入", notes = "将用户输入的文字格式化为JSON的格式")
+    @PostMapping("/formatUserInput")
+    public Mono<FormatedMarkdownVo> formatUserInput(@RequestBody UserFormateVo userInput) {
+        return deekSeekService.formatUserInput(userInput);
     }
 }
