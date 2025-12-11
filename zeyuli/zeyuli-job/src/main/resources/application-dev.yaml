@@ -1,9 +1,24 @@
 server:
+  # 增加服务器超时设置
+  reactive:
+    response-timeout: 120s
+  servlet:
+    session:
+      timeout: 120s
   port: 8080
-logging:
-  level:
-    reactor.netty: DEBUG
+  tomcat:
+    connection-timeout: 120s
+    keep-alive-timeout: 120s
+    netty:
+      connection-timeout: 120s
+
+
 spring:
+  webflux:
+    response-timeout: 120s
+  mvc:
+    async:
+      request-timeout: 120s
   ai:
     openai:
       api-key: sk-84dbc668f2d048ddb6c39ace5ae78f47

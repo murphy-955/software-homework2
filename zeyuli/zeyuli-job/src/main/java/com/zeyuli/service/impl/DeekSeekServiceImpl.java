@@ -317,7 +317,7 @@ public class DeekSeekServiceImpl implements DeekSeekService {
         String startStr = startDate.format(fmt);
         String endStr = endDate.format(fmt);
         return String.format("""
-                        请将以下旅行行程解析为JSON格式。
+                        将以下旅行行程解析为JSON格式。
                         
                         要求：
                         1. 只返回JSON，不要任何额外文字

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // 创建axios实例，优先使用 Vite 环境变量 `VITE_API_BASE_URL`
-const baseURL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://106.15.90.163:8080'
+const baseURL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8080'
 const request = axios.create({
   baseURL, // API基础URL
   timeout: 10000, // 请求超时时间
