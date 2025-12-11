@@ -1,6 +1,7 @@
 package com.zeyuli.pojo.bo;
 
 import lombok.Data;
+
 import java.util.List;
 
 /**
@@ -19,16 +20,4 @@ public class Route {
     private String polyline; // 路线轨迹点集
     private String startName; // 起点名称
     private String endName; // 终点名称
-    
-    /**
-     * 路线步骤
-     */
-    @Data
-    public static class RouteStep {
-        private String instruction; // 导航指示
-        private double distance; // 该段距离
-        private double duration; // 该段时长
-        private String mode; // 该段交通方式
-        private double cost; // 该段费用
-    }
 }

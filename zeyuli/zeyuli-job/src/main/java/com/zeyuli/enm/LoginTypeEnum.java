@@ -18,6 +18,4 @@ public enum LoginTypeEnum {
     QRCODE_LOGIN("QRCODE_LOGIN");
 
     private final String loginType;
-
-
 }

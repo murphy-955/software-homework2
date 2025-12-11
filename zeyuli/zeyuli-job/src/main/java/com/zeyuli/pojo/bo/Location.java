@@ -10,10 +10,16 @@ import lombok.Data;
  */
 @Data
 public class Location {
+    // 名称
     private String name;
+    // 纬度
     private double lat;
+    // 经度
     private double lng;
+    // 地址
     private String address;
+    // 类型
     private String type;
+    // 城市编码
     private String cityCode;
 }
