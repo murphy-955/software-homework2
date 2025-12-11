@@ -1,19 +1,21 @@
 package com.zeyuli.controller;
 
 
-import com.zeyuli.pojo.UserItineraryPlan;
+import com.zeyuli.pojo.vo.FormatedMarkdownVo;
+import com.zeyuli.pojo.vo.UserFormateVo;
 import com.zeyuli.service.DeekSeekService;
-import com.zeyuli.service.impl.DeekSeekServiceImpl;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.LocalDate;
-import java.util.Map;
+import java.util.ArrayList;
 
 /**
  *
@@ -26,6 +28,7 @@ import java.util.Map;
 @RequestMapping("/deekseek")
 // todo 仅测试用
 @CrossOrigin
+@Slf4j
 public class DeekSeekController {
 
     @Autowired
@@ -38,7 +41,21 @@ public class DeekSeekController {
                              @RequestParam("startDate") LocalDate startDate,
                              @RequestParam("endDate") LocalDate endDate,
                              @RequestParam("token") String token,
-                             @RequestParam(value = "userInput",defaultValue = "")String userInput) {
-        return deekSeekService.chat(userInput,token,startCity, endCity, startDate, endDate);
+                             @RequestParam(value = "userInput", defaultValue = "") String userInput) {
+        return deekSeekService.chat(userInput, token, startCity, endCity, startDate, endDate);
     }
+
+    @ApiOperation(value = "格式化用户输入", notes = "将用户输入的文字格式化为JSON的格式")
+    @PostMapping("/formatUserInput")
+    public Mono<FormatedMarkdownVo> formatUserInput(@RequestBody UserFormateVo userInput) {
+        return deekSeekService.formatUserInput(userInput)
+                .timeout(Duration.ofSeconds(120))
+                .onErrorResume(e -> {
+                    log.error("请求超时: {}", e.getMessage());
+                    FormatedMarkdownVo errorResult = new FormatedMarkdownVo();
+                    errorResult.setDays(new ArrayList<>());
+                    return Mono.just(errorResult);
+                });
+    }
+
 }

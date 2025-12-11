@@ -4,16 +4,24 @@ GET http://localhost:10086/chat?input=说一声你好世界
 ###
 POST http://localhost:8080/user/login
 Content-Type: application/json
+#
+#{
+#  "userName": "admin",
+#  "password": "f969248d621bcded4a3582a1c3b17a71eedfefa9120c36ee3bd1957438cd55b9",
+#  "loginType": "ACCOUNT_SECRET_LOGIN"
+#}
 
 {
-  "userName": "admin",
+  "username": "user",
   "password": "f969248d621bcded4a3582a1c3b17a71eedfefa9120c36ee3bd1957438cd55b9",
   "loginType": "ACCOUNT_SECRET_LOGIN"
 }
 
-
 ###
-GET http://localhost:10086/deekseek/planItinerary?token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169kBLAWEId6iCiQcMkaAmxt3F4_95D9Q2QwB23qNGJaiFxToxhl3EmdIYvWWEAVpNxyQ5dS0xb3tf5Ypnz4VWop-ku0BAZ5EUe6veD9fGVhteAAAA.k_Dfzay7m7UN8DL30_huGktGjSrGgIBw8PsLVCy4kU5c0BCbG3W9mkIXFFIlELBeP-Rz8LhJUgUGhrliPSVjkA&startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
+GET http://localhost:8080/deekseek/planItinerary?
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWLQQ6AIAzA_rKzBzcGCI_wD0Mw8YAhEtTE-Hfx2KZ9oLYAHtg6hwpHQSUsxorWbCMGSlN0hhEGaDUds-TUa4l527sqVzw7LrQS_Um6C3i0Rmvi_r8fuapgEV4AAAA.iitfVba4puAoXuw5ffLJCzSLOE8Xl9JgdbmSStSxdy1-fEpFnDyprR7IF4bYvqrykI4NKK2Oz3MpZ3PPcP7C_w&
+    startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
+
 
 ###
 GET http://localhost:8080/map/center?location=南京南站

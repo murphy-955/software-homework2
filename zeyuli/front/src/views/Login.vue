@@ -10,7 +10,7 @@
           <label class="form-label">用户名</label>
           <input
               type="text"
-              v-model="loginForm.username"
+              v-model="loginForm.userName"
               placeholder="用户名"
               required
               class="input"
@@ -64,9 +64,8 @@ const router = useRouter()
 
 // 登录表单数据
 const loginForm = ref({
-  username: '',
+  userName: '',
   password: '',
-  verifyCode: '',
   loginType: 'ACCOUNT_SECRET_LOGIN'
 })
 
