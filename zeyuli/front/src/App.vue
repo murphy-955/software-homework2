@@ -16,6 +16,11 @@
   box-sizing: border-box;
 }
 
+html, body, #app, .app-container {
+  height: 100%;
+  width: 100%;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   -webkit-font-smoothing: antialiased;

@@ -5,6 +5,12 @@
     box-sizing: border-box;
 }
 
+html, body, #app {
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* 防止双重滚动条 */
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     -webkit-font-smoothing: antialiased;
