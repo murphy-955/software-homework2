@@ -1,175 +1,127 @@
 <template>
-  <!-- Grid：sidebar 展开=260px；收起=0px（主区吃满） -->
-  <div class="app-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-    <!-- Sidebar -->
-    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
-      <div class="sidebar-brand">
-        <div class="brand-row" @click="navigateTo('/home')" title="回到首页">
-          <div class="brand-logo">🧳</div>
-          <div class="brand-text">TravelMate</div>
-        </div>
+  <div class="home-container">
+    <!-- Header -->
+    <header class="header header-slogan">
+      <div class="slogan-wrap" aria-label="标语">
+        <span class="slogan-dot"></span>
+        <span class="slogan-text">希望你喜欢你的每一次旅途</span>
+        <span class="slogan-dot"></span>
       </div>
+    </header>
 
-      <nav class="sidebar-nav">
-        <div class="sidebar-item active" @click="navigateTo('/home')">
-          <span class="icon">🏠</span>
-          <span class="label">首页</span>
+    <!-- 内容区域 -->
+    <div class="content-area">
+      <div class="chat-card">
+        <!-- 聊天头部 -->
+        <div class="chat-header">
+          <div class="chat-title">
+            <div class="bot-avatar">🧭</div>
+            <div>
+              <div class="font-bold text-lg">TravelMate 智能规划助手</div>
+              <div class="text-sm text-gray-600">用一句话描述你的旅行需求，我来生成行程</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" type="button" @click="resetChat">
+            清空对话
+          </button>
         </div>
-        <div class="sidebar-item" @click="navigateTo('/result')">
-          <span class="icon">📅</span>
-          <span class="label">我的行程</span>
-        </div>
-        <div class="sidebar-item" @click="navigateTo('/map')">
-          <span class="icon">🗺️</span>
-          <span class="label">地图视图</span>
-        </div>
-        <div class="sidebar-item" @click="navigateTo('/budget')">
-          <span class="icon">💰</span>
-          <span class="label">预算管理</span>
-        </div>
-        <div class="sidebar-item" @click="navigateTo('/profile')">
-          <span class="icon">👤</span>
-          <span class="label">个人中心</span>
-        </div>
-      </nav>
-    </aside>
 
-    <!-- Main -->
-    <main class="main-content">
-      <!-- ✅ 永远贴着 sidebar/main 的分界线显示（收起时也在最左边） -->
-      <button
-          class="edge-toggle"
-          type="button"
-          @click="toggleSidebar"
-          :aria-label="sidebarCollapsed ? '打开侧边栏' : '收起侧边栏'"
-          :title="sidebarCollapsed ? '打开侧边栏' : '收起侧边栏'"
-      >
-        <span class="chev" :class="{ right: sidebarCollapsed }"></span>
-      </button>
-
-      <!-- Header -->
-      <header class="header header-slogan">
-        <div class="slogan-wrap" aria-label="标语">
-          <span class="slogan-dot"></span>
-          <span class="slogan-text">希望你喜欢你的每一次旅途</span>
-          <span class="slogan-dot"></span>
-        </div>
-      </header>
-
-      <!-- 内容区域 -->
-      <div class="content-area">
-        <div class="chat-card">
-          <!-- 聊天头部 -->
-          <div class="chat-header">
-            <div class="chat-title">
-              <div class="bot-avatar">🧭</div>
-              <div>
-                <div class="font-bold text-lg">TravelMate 智能规划助手</div>
-                <div class="text-sm text-gray-600">用一句话描述你的旅行需求，我来生成行程</div>
+        <!-- 聊天消息区 -->
+        <div class="chat-body" ref="chatBodyRef">
+          <div v-if="messages.length === 0" class="welcome-message">
+            <div class="msg-row assistant">
+              <div class="msg-avatar">🤖</div>
+              <div class="msg-bubble assistant">
+                <div class="msg-text">
+                  你好！我是TravelMate，你的智能旅行规划助手。告诉我你的旅行想法，我来帮你规划完美行程！
+                </div>
+                <div class="msg-meta">试试点击下方的快捷模板开始</div>
               </div>
             </div>
-            <button class="btn btn-secondary btn-sm" type="button" @click="resetChat">
-              清空对话
+          </div>
+
+          <div v-for="m in messages" :key="m.id" class="msg-row" :class="m.role">
+            <div v-if="m.role === 'assistant'" class="msg-avatar">🤖</div>
+
+            <div class="msg-bubble" :class="m.role">
+              <div class="msg-text">{{ m.content }}</div>
+              <div v-if="m.meta" class="msg-meta">{{ m.meta }}</div>
+            </div>
+
+            <div v-if="m.role === 'user'" class="msg-avatar user">🧑</div>
+          </div>
+
+          <div v-if="loading" class="msg-row assistant">
+            <div class="msg-avatar">🤖</div>
+            <div class="msg-bubble assistant typing">
+              <div class="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="msg-meta">正在生成行程...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快捷模板 -->
+        <div class="chat-quick">
+          <div class="quick-title">快捷模板</div>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('北京三日游 1500元')">
+              北京三日游 1500元
+            </button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('杭州两日游 美食之旅')">
+              杭州两日游 美食之旅
+            </button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('成都四日游 文化体验')">
+              成都四日游 文化体验
+            </button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('西安三日游 历史文化')">
+              西安三日游 历史文化
+            </button>
+            <button type="button" class="btn btn-secondary" @click="selectTemplate('厦门两日游 海滨风光')">
+              厦门两日游 海滨风光
             </button>
           </div>
+        </div>
 
-          <!-- 聊天消息区 -->
-          <div class="chat-body" ref="chatBodyRef">
-            <div v-if="messages.length === 0" class="welcome-message">
-              <div class="msg-row assistant">
-                <div class="msg-avatar">🤖</div>
-                <div class="msg-bubble assistant">
-                  <div class="msg-text">
-                    你好！我是TravelMate，你的智能旅行规划助手。告诉我你的旅行想法，我来帮你规划完美行程！
-                  </div>
-                  <div class="msg-meta">试试点击下方的快捷模板开始</div>
-                </div>
-              </div>
-            </div>
+        <!-- 输入区 -->
+        <div class="chat-input-new">
+          <div class="input-container">
+            <textarea
+                class="chat-textarea-new"
+                placeholder="输入你的旅行需求，例如：上海三日游，2000预算，喜欢美食和艺术"
+                v-model="travelRequest"
+                @keydown.enter.exact.prevent="startPlanning"
+                :disabled="loading"
+                rows="1"
+                ref="textareaRef"
+            ></textarea>
 
-            <div v-for="m in messages" :key="m.id" class="msg-row" :class="m.role">
-              <div v-if="m.role === 'assistant'" class="msg-avatar">🤖</div>
-
-              <div class="msg-bubble" :class="m.role">
-                <div class="msg-text">{{ m.content }}</div>
-                <div v-if="m.meta" class="msg-meta">{{ m.meta }}</div>
-              </div>
-
-              <div v-if="m.role === 'user'" class="msg-avatar user">🧑</div>
-            </div>
-
-            <div v-if="loading" class="msg-row assistant">
-              <div class="msg-avatar">🤖</div>
-              <div class="msg-bubble assistant typing">
-                <div class="typing-dots">
-                  <span></span><span></span><span></span>
-                </div>
-                <div class="msg-meta">正在生成行程...</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 快捷模板 -->
-          <div class="chat-quick">
-            <div class="quick-title">快捷模板</div>
-            <div class="flex gap-3 flex-wrap">
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('北京三日游 1500元')">
-                北京三日游 1500元
-              </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('杭州两日游 美食之旅')">
-                杭州两日游 美食之旅
-              </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('成都四日游 文化体验')">
-                成都四日游 文化体验
-              </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('西安三日游 历史文化')">
-                西安三日游 历史文化
-              </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('厦门两日游 海滨风光')">
-                厦门两日游 海滨风光
-              </button>
-            </div>
-          </div>
-
-          <!-- 输入区 -->
-          <div class="chat-input-new">
-            <div class="input-container">
-              <textarea
-                  class="chat-textarea-new"
-                  placeholder="输入你的旅行需求，例如：上海三日游，2000预算，喜欢美食和艺术"
-                  v-model="travelRequest"
-                  @keydown.enter.exact.prevent="startPlanning"
-                  :disabled="loading"
-                  rows="1"
-                  ref="textareaRef"
-              ></textarea>
-
-              <button
-                  type="button"
-                  class="send-button"
-                  :disabled="loading || !travelRequest.trim()"
-                  @click="startPlanning"
-                  :class="{ sending: loading }"
-                  aria-label="发送"
-              >
-                <svg v-if="!loading" class="send-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                      d="M5 12L19 12M12 5L19 12L12 19"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                  />
-                </svg>
-                <svg v-else class="loading-icon" viewBox="0 0 24 24" fill="none">
-                  <circle class="loading-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-                </svg>
-              </button>
-            </div>
+            <button
+                type="button"
+                class="send-button"
+                :disabled="loading || !travelRequest.trim()"
+                @click="startPlanning"
+                :class="{ sending: loading }"
+                aria-label="发送"
+            >
+              <svg v-if="!loading" class="send-icon" viewBox="0 0 24 24" fill="none">
+                <path
+                    d="M5 12L19 12M12 5L19 12L12 19"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+              </svg>
+              <svg v-else class="loading-icon" viewBox="0 0 24 24" fill="none">
+                <circle class="loading-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   </div>
 </template>
 
@@ -179,9 +131,6 @@ import { useRouter } from "vue-router";
 import { planByBudget } from "../api/itinerary";
 
 const router = useRouter();
-
-const sidebarCollapsed = ref(false);
-const toggleSidebar = () => (sidebarCollapsed.value = !sidebarCollapsed.value);
 
 // 输入
 const travelRequest = ref("");
@@ -220,9 +169,6 @@ const pushMsg = async (role, content, meta = "") => {
   await nextTick();
   if (chatBodyRef.value) chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight;
 };
-
-// 导航
-const navigateTo = (path) => router.push(path);
 
 // 选择模板
 const selectTemplate = async (template) => {
@@ -267,205 +213,11 @@ const startPlanning = async () => {
 </script>
 
 <style scoped>
-/* ====== 布局：Grid，sidebar 收起时列宽=0，主区吃满视口 ====== */
-.app-layout {
-  /* 主题变量（紫色基调） */
-  --purple-1: #667eea;
-  --purple-2: #764ba2;
-  --ink: #0f172a;
-  --stroke: rgba(15, 23, 42, 0.08);
-  --glass: rgba(255, 255, 255, 0.78);
-  --glass-2: rgba(255, 255, 255, 0.62);
-
-  --sidebar-w: 260px;
-
-  display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  min-height: 100vh;
-  gap: 0;
-  column-gap: 0;
-
-  background:
-      radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.10), transparent 45%),
-      radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
-      linear-gradient(135deg, var(--purple-1) 0%, var(--purple-2) 100%);
-  position: relative;
-  overflow: hidden;
-
-  /* ✅ 独立堆叠上下文：避免伪元素压到内容上造成“紫色竖条” */
-  isolation: isolate;
-}
-
-/* 背景光晕层：强制压到最底下 */
-.app-layout::before {
-  content: "";
-  position: absolute;
-  inset: -120px;
-  background:
-      radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.12), transparent 45%),
-      radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.08), transparent 48%);
-  filter: blur(18px);
-  pointer-events: none;
-  z-index: -1;
-}
-
-.app-layout.sidebar-collapsed {
-  --sidebar-w: 0px;
-}
-
-/* ====== Sidebar ====== */
-.sidebar {
-  grid-column: 1;
-  min-width: 0;
-  height: 100vh;
-
-  /* ✅ 不透明：防止透出紫色底造成“竖条” */
-  background: #ffffff;
-
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
-  border-right: 1px solid rgba(15, 23, 42, 0.06);
-  z-index: 10;
-
-  transition: opacity 0.2s ease, transform 0.25s ease;
-}
-
-.sidebar.collapsed {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-12px);
-}
-
-.sidebar-brand {
-  padding: 18px 16px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-}
-.brand-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-.brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
-  box-shadow: 0 16px 36px rgba(102, 126, 234, 0.26);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-.brand-text {
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: #1d4ed8;
-  white-space: nowrap;
-  font-size: 20px;
-}
-
-.sidebar-nav {
-  padding: 8px 0;
-}
-.sidebar-item {
-  padding: 14px 18px;
-  margin: 8px 14px;
-  border-radius: 16px;
-  color: #334155;
-  cursor: pointer;
-  transition: all 0.22s ease;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  user-select: none;
-}
-.sidebar-item:hover {
-  background: rgba(15, 23, 42, 0.04);
-  transform: translateY(-1px);
-}
-.sidebar-item.active {
-  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
-  color: #fff;
-  box-shadow: 0 16px 34px rgba(102, 126, 234, 0.26);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-.icon {
-  font-size: 18px;
-}
-.label {
-  white-space: nowrap;
-  font-size: 16px;
-}
-
-/* ====== Main：紫色基调背景（你要的效果） ====== */
-.main-content {
-  grid-column: 2;
-  min-width: 0;
-  z-index: 1;
+.home-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  position: relative;
-
-  /* ✅ 紫色“氛围底”：统一左侧视觉体系 */
-  background:
-      radial-gradient(circle at 18% 10%, rgba(102, 126, 234, 0.28), transparent 46%),
-      radial-gradient(circle at 82% 30%, rgba(118, 75, 162, 0.22), transparent 48%),
-      radial-gradient(circle at 60% 90%, rgba(102, 126, 234, 0.16), transparent 52%),
-      linear-gradient(135deg, rgba(102, 126, 234, 0.22), rgba(118, 75, 162, 0.18));
-}
-
-/* ✅ 分界线处“擦干净”1px，避免抗锯齿/阴影导致的色带 */
-.main-content::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.85);
-  pointer-events: none;
-}
-
-/* ====== 分界线按钮（永远贴边） ====== */
-.edge-toggle {
-  position: absolute;
-  left: 0;
-  top: 18px;
-  transform: translateX(-50%);
-  z-index: 50;
-
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
-
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-}
-.edge-toggle:hover {
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.chev {
-  width: 10px;
-  height: 10px;
-  border-right: 3px solid rgba(76, 29, 149, 0.75);
-  border-bottom: 3px solid rgba(76, 29, 149, 0.75);
-  transform: rotate(135deg);
-  transition: transform 0.2s ease;
-}
-.chev.right {
-  transform: rotate(-45deg);
-}
-
-.app-layout.sidebar-collapsed .edge-toggle {
-  transform: translateX(6px);
+  min-height: 0; /* Important for nested flex scrolling */
 }
 
 /* ====== Header ====== */
@@ -869,23 +621,6 @@ const startPlanning = async () => {
 
 /* 移动端 */
 @media (max-width: 768px) {
-  .app-layout {
-    display: flex;
-    flex-direction: column;
-  }
-  .sidebar,
-  .sidebar.collapsed {
-    height: auto;
-    opacity: 1;
-    pointer-events: auto;
-    transform: none;
-  }
-  .edge-toggle {
-    position: fixed;
-    left: 14px;
-    top: 14px;
-    transform: none;
-  }
   .content-area {
     padding: 16px;
     min-height: calc(100vh - 72px);

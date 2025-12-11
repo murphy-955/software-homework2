@@ -1,7 +1,32 @@
 import request from '../utils/request'
 
+// MOCK模式开关
+const MOCK_MODE = true;
+
 // 按预算规划行程
 export const planByBudget = (params, data) => {
+    if (MOCK_MODE) {
+        console.log('Mock planByBudget:', params);
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({
+                    title: `${params.city || '北京'} ${params.days || 3}日游`,
+                    days: Array.from({ length: params.days || 3 }, (_, i) => ({
+                        day: i + 1,
+                        date: new Date(Date.now() + i * 86400000).toISOString().split('T')[0],
+                        activities: [
+                            { time: "09:00", title: "景点A", description: "参观著名景点", cost: 50 },
+                            { time: "12:00", title: "午餐", description: "当地特色美食", cost: 80 },
+                            { time: "14:00", title: "景点B", description: "游览历史古迹", cost: 40 },
+                            { time: "18:00", title: "晚餐", description: "夜市小吃", cost: 60 }
+                        ]
+                    })),
+                    totalBudget: params.budget || 2000,
+                    estimatedCost: (params.budget || 2000) * 0.8
+                });
+            }, 1500); // 模拟网络延迟
+        });
+    }
     return request({
         url: '/itinerary/plan-by-budget',
         method: 'POST',

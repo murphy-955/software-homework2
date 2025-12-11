@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 // 导入页面组件
 const Login = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
+const MainLayout = () => import('../layout/MainLayout.vue') // 导入布局组件
+
 const Home = () => import('../views/Home.vue')
 const Result = () => import('../views/Result.vue')
 const Map = () => import('../views/Map.vue')
@@ -33,54 +35,60 @@ const router = createRouter({
       component: Register
     },
     {
-      path: '/home',
-      name: 'home',
-      component: Home
-    },
-    {
-      path: '/result',
-      name: 'result',
-      component: Result
-    },
-    {
-      path: '/map',
-      name: 'map',
-      component: Map
-    },
-    {
-      path: '/edit',
-      name: 'edit',
-      component: Edit
-    },
-    {
-      path: '/budget',
-      name: 'budget',
-      component: Budget
-    },
-    {
-      path: '/profile',
-      name: 'profile',
-      component: Profile
-    },
-    {
-      path: '/favorites',
-      name: 'favorites',
-      component: Favorites
-    },
-    {
-      path: '/history',
-      name: 'history',
-      component: History
-    },
-    {
-      path: '/preferences',
-      name: 'preferences',
-      component: Preferences
-    },
-    {
-      path: '/help',
-      name: 'help',
-      component: Help
+      path: '/',
+      component: MainLayout,
+      children: [
+        {
+          path: 'home',
+          name: 'home',
+          component: Home
+        },
+        {
+          path: 'result',
+          name: 'result',
+          component: Result
+        },
+        {
+          path: 'map',
+          name: 'map',
+          component: Map
+        },
+        {
+          path: 'edit',
+          name: 'edit',
+          component: Edit
+        },
+        {
+          path: 'budget',
+          name: 'budget',
+          component: Budget
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: Profile
+        },
+        {
+          path: 'favorites',
+          name: 'favorites',
+          component: Favorites
+        },
+        {
+          path: 'history',
+          name: 'history',
+          component: History
+        },
+        {
+          path: 'preferences',
+          name: 'preferences',
+          component: Preferences
+        },
+        {
+          path: 'help',
+          name: 'help',
+          component: Help
+        }
+      ]
     }
   ]
 })
