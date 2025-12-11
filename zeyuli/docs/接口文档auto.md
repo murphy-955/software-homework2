@@ -6518,4 +6518,3 @@ POST /multimodal-planning/convert-to-multimodal
 |userFeedbackScore|number|false|none||用户反馈评分<br />用户对该结果的评分，范围1-5|
 |applicableScenarios|[string]|false|none||适用场景<br />该结果适合的旅行场景描述|
 |mediaResourceCount|[MapInteger](#schemamapinteger)|false|none||媒体资源统计<br />包含的图片、音频等资源数量|
-
