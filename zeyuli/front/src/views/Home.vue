@@ -256,6 +256,15 @@ const textareaRef = ref(null);
 const messages = ref([]);
 const chatBodyRef = ref(null);
 
+// 存储第一个接口返回的原始数据，用于后续确认
+const pendingItineraryData = ref({
+  markdown: "",
+  startCity: "",
+  endCity: "",
+  startDate: "",
+  endDate: "",
+});
+
 // Markdown 渲染器
 const md = new MarkdownIt({
   html: false,
@@ -271,23 +280,16 @@ const escapeHtml = (unsafe = "") =>
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
-/**
- * 渲染 Markdown
- * - isFinal = false：仅渲染“完整部分”（闭合代码块之前），尾巴当普通文本
- * - isFinal = true：整段 markdown 渲染
- */
 const renderMarkdown = (text = "", isFinal = true) => {
   const raw = text || "";
 
   if (!raw) return "";
 
-  // 最终版：整体渲染
   if (isFinal) {
     const html = md.render(raw);
     return DOMPurify.sanitize(html);
   }
 
-  // 流式版：只渲染完整代码块前的内容
   const fenceRegex = /```/g;
   let match;
   const indices = [];
@@ -373,6 +375,13 @@ const selectTemplate = async (template) => {
 const resetChat = () => {
   messages.value = [];
   travelRequest.value = "";
+  pendingItineraryData.value = {
+    markdown: "",
+    startCity: "",
+    endCity: "",
+    startDate: "",
+    endDate: "",
+  };
   nextTick(adjustTextareaHeight);
 };
 
@@ -427,11 +436,15 @@ const startPlanning = async () => {
     await nextTick();
     scrollToBottom();
 
+    // 这里可以解析用户输入中的城市和日期信息
+    // 为了简化，我们使用示例数据，实际项目中应该解析用户输入
+    const parsedInfo = parseUserInput(text);
+
     const params = {
-      startCity: "北京",
-      endCity: "上海",
-      startDate: "2025-10-25",
-      endDate: "2025-10-30",
+      startCity: parsedInfo.startCity,
+      endCity: parsedInfo.endCity,
+      startDate: parsedInfo.startDate,
+      endDate: parsedInfo.endDate,
       token: localStorage.getItem("token") || "",
       userInput: text,
     };
@@ -458,15 +471,23 @@ const startPlanning = async () => {
       };
     }
 
+    // 保存第一个接口返回的数据，用于后续确认
+    pendingItineraryData.value = {
+      markdown: latestContent,
+      startCity: parsedInfo.startCity,
+      endCity: parsedInfo.endCity,
+      startDate: parsedInfo.startDate,
+      endDate: parsedInfo.endDate,
+    };
+
     await pushMsg(
         "assistant",
-        "行程规划完成！请检查内容，若满意可以点击“确认该行程”，我会为你生成结构化行程数据。",
+        "行程规划完成！请检查内容，若满意可以点击\"确认该行程\"，我会为你生成结构化行程数据。",
         "系统提示"
-    );
+  );
   } catch (error) {
     console.error("规划行程失败:", error);
 
-    // 清理临时消息框
     if (tempMessageId) {
       const tempIdx = messages.value.findIndex((m) => m.id === tempMessageId);
       if (tempIdx !== -1) {
@@ -484,7 +505,41 @@ const startPlanning = async () => {
   }
 };
 
-/** 只对“最后一条正式 assistant 消息”展示确认按钮 */
+// 解析用户输入，提取城市和日期信息
+const parseUserInput = (input) => {
+  // 这里实现简单的解析逻辑
+  // 实际项目中可能需要更复杂的自然语言处理
+
+  // 示例：匹配"X日游"或"X天"
+  const dayMatch = input.match(/(\d+)(?:日|天)/);
+  const days = dayMatch ? parseInt(dayMatch[1]) : 3;
+
+  // 示例：匹配城市（简化版）
+  const cities = ["北京", "上海", "广州", "深圳", "杭州", "成都", "西安", "厦门"];
+  const foundCities = cities.filter(city => input.includes(city));
+
+  // 设置默认值
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + days);
+
+  return {
+    startCity: foundCities[0] || "北京",
+    endCity: foundCities[1] || foundCities[0] || "上海",
+    startDate: formatDate(today),
+    endDate: formatDate(endDate),
+  };
+};
+
+// 格式化日期为 YYYY-MM-DD
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/** 只对"最后一条正式 assistant 消息"展示确认按钮 */
 const lastAssistantIndex = computed(() => {
   for (let i = messages.value.length - 1; i >= 0; i--) {
     const m = messages.value[i];
@@ -501,41 +556,62 @@ const showConfirmFor = (m) => {
       !loading.value &&
       idx === lastAssistantIndex.value &&
       m.role === "assistant" &&
-      (m.content || "").trim().length > 0
+      (m.content || "").trim().length > 0 &&
+      pendingItineraryData.value.markdown // 确保有数据可以确认
   );
 };
 
-// 确认行程：把 Markdown 发给后端解析为 JSON，并存起来
+// 确认行程：调用第二个接口格式化数据并缓存
 const confirmItinerary = async (m) => {
   try {
-    const baseInfo = {
-      startCity: "北京",
-      endCity: "上海",
-      startDate: "2025-10-25",
-      endDate: "2025-10-30",
-      token: localStorage.getItem("token") || "",
-    };
+    loading.value = true;
 
-    const confirmed = await parseItineraryFromMarkdown({
-      ...baseInfo,
-      markdown: m.content,
+    // 调用第二个接口格式化数据
+    const formattedData = await parseItineraryFromMarkdown({
+      markdown: pendingItineraryData.value.markdown,
+      startCity: pendingItineraryData.value.startCity,
+      endCity: pendingItineraryData.value.endCity,
+      startDate: pendingItineraryData.value.startDate,
+      endDate: pendingItineraryData.value.endDate,
+      token: localStorage.getItem("token") || ""
     });
-    // 后端预期返回：{ markdown, itinerary }
 
-    localStorage.setItem("confirmedItinerary", JSON.stringify(confirmed));
+    // 缓存到浏览器（localStorage 或 sessionStorage）
+    // 使用 localStorage 以便其他页面可以访问
+    localStorage.setItem("confirmedItinerary", JSON.stringify({
+      ...formattedData,
+      timestamp: new Date().toISOString(),
+    }));
+
+    // 添加事件通知其他组件/页面
+    window.dispatchEvent(new CustomEvent('itineraryConfirmed', {
+      detail: formattedData
+    }));
 
     await pushMsg(
         "assistant",
-        "已确认 ✅ 行程已解析为结构化数据，你可以在“我的行程 / 预算管理 / 地图视图”中查看。",
+        "已确认 ✅ 行程已解析为结构化数据，你可以在\"我的行程 / 预算管理 / 地图视图\"中查看。",
         "系统提示"
-    );
-  } catch (e) {
-    console.error("确认行程失败：", e);
+  );
+
+    // 清空待处理数据
+    pendingItineraryData.value = {
+      markdown: "",
+      startCity: "",
+      endCity: "",
+      startDate: "",
+      endDate: "",
+    };
+
+  } catch (error) {
+    console.error("确认行程失败：", error);
     await pushMsg(
         "assistant",
         "确认行程时出错，请稍后重试。",
         "系统提示"
     );
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -552,6 +628,18 @@ const copyMarkdown = async (text) => {
     );
   }
 };
+
+// 导出一些方法供其他组件使用
+defineExpose({
+  getConfirmedItinerary: () => {
+    const stored = localStorage.getItem("confirmedItinerary");
+    return stored ? JSON.parse(stored) : null;
+  },
+  clearItineraryCache: () => {
+    localStorage.removeItem("confirmedItinerary");
+    sessionStorage.removeItem("currentItinerary");
+  },
+});
 </script>
 
 <style scoped>

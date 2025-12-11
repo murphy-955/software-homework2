@@ -18,4 +18,5 @@ public class UserFormateVo {
     private String endCity;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String token;
 }

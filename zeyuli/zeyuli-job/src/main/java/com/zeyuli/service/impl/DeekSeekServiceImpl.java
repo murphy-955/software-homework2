@@ -18,6 +18,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import reactor.core.publisher.Flux;
@@ -28,6 +29,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 调用ai业务层实现的接口
@@ -49,6 +51,9 @@ public class DeekSeekServiceImpl implements DeekSeekService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private RedisTemplate<String,Object> redisTemplate;
 
     // 存储用户对话历史，key: userId, value: 对话消息列表
     private final Map<String, List<Message>> conversationHistory = new ConcurrentHashMap<>();
@@ -278,6 +283,10 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                         FormatedMarkdownVo result = mapper.readValue(json, FormatedMarkdownVo.class);
                         log.info("JSON解析成功，包含 {} 天行程", result.getDays() != null ? result.getDays().size() : 0);
                         log.info("JSON解析成功，内容: {}", result);
+                        // 设置缓存
+                        String id = jwtUtil.getUserInfo(userInput.getToken())[0].substring(0, 16);
+                        String key = "user:formated:".concat(id);
+                        redisTemplate.opsForValue().set(key, result, 24, TimeUnit.HOURS);
                         return result;
                     })
                     .timeout(Duration.ofSeconds(120)) // 增加到120秒

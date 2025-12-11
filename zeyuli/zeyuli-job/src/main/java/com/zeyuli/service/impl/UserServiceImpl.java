@@ -6,8 +6,10 @@ import com.zeyuli.mappers.UserMapper;
 import com.zeyuli.pojo.vo.UserVo;
 import com.zeyuli.service.UserService;
 import com.zeyuli.strategy.login.LoginFactory;
+import com.zeyuli.util.JwtUtil;
 import com.zeyuli.util.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -26,6 +28,12 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private LoginFactory loginFactory;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 登录
@@ -94,5 +102,24 @@ public class UserServiceImpl implements UserService {
             return Response.success();
         }
         return Response.failed(StatusCodeEnum.REGISTER_FAILED);
+    }
+
+    /**
+     * 从redis中获取用户行程信息
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-12 00:11
+     * @param token 用户token
+     * @return : java.util.Map<java.lang.String,java.lang.Object>
+     */
+    @Override
+    public Map<String, Object> getTravelInfo(String token) {
+        String id = jwtUtil.getUserInfo(token)[0].substring(0, 16);
+        String key = "user:formated:".concat(id);
+        Object obj = redisTemplate.opsForValue().get(key);
+        if (obj != null) {
+            return Response.success(obj);
+        }
+        return Response.failed(StatusCodeEnum.LOGIN_FAILED);
     }
 }
