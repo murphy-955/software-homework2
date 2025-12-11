@@ -12,7 +12,8 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:8080/user/getTravelInfo?token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWKQQ6AIAzA_rKzF5hjyCP8wxjzZkIkqInx7-KtbfpA6xkSSC4YC7MG9bNGW4oRRlbJguqEYILe7Fhlt3H_OEq9yjlM_ea9G253heQ4EFFgxPcD8Y4W6F0AAAA.SdnAlIEB16afbz9ULJy0Lo-u1oH9zBBdnwSyxt2DwnsR75s2K2glqNNQIVs5VAJsuS8LTfC_HjcNLGP8wty0Iw
+GET http://localhost:8080/user/getTravelInfo?
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWLQQ6AIAzA_rKzBzcGCI_wD0Mw8YAhEtTE-Hfx2KZ9oLYAHtg6hwpHQSUsxorWbCMGSlN0hhEGaDUds-TUa4l527sqVzw7LrQS_Um6C3i0Rmvi_r8fuapgEV4AAAA.iitfVba4puAoXuw5ffLJCzSLOE8Xl9JgdbmSStSxdy1-fEpFnDyprR7IF4bYvqrykI4NKK2Oz3MpZ3PPcP7C_w&
 
 
 ###

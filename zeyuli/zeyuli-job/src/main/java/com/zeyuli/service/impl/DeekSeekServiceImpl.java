@@ -64,79 +64,120 @@ public class DeekSeekServiceImpl implements DeekSeekService {
     private ChatModel chatModel;
 
     @Override
-    public Flux<String> chat(String userInput, String token, String startCity, String endCity, LocalDate startDate, LocalDate endDate) {
+    public Flux<String> chat(String userInput,
+                             String token,
+                             String startCity,
+                             String endCity,
+                             LocalDate startDate,
+                             LocalDate endDate) {
+
+        /* ---------------- 1. 鉴权 ---------------- */
         String[] info = jwtUtil.getUserInfo(token);
         User res = userMapper.selectUserInfo(info[0]);
         String hash = DigestUtils.md5DigestAsHex(res.getPassword().getBytes()).substring(0, 6);
 
-        if (!jwtUtil.isExpiration(token)
-                && res.getId() != null
-                && res.getUserName().equals(info[1])
-                && hash.equals(info[2])) {
-
-            String userId = info[0]; // 使用用户ID作为对话历史的key
-
-            // 获取或创建用户对话历史
-            List<Message> history = conversationHistory.computeIfAbsent(userId, k -> new ArrayList<>());
-
-            // 构建用户消息
-            String userMessageContent;
-            if (userInput == null || userInput.trim().isEmpty()) {
-                // 第一次请求：生成完整的旅行计划
-                userMessageContent = buildInitialTravelPlanMessage(startCity, endCity, startDate, endDate);
-            } else {
-                // 后续请求：用户输入修改要求
-                userMessageContent = buildUserInputMessage(userInput, startCity, endCity, startDate, endDate);
-            }
-
-            UserMessage userMessage = new UserMessage(userMessageContent);
-
-            // 构建系统消息
-            SystemPromptTemplate promptTemplate = new SystemPromptTemplate(role);
-            Message systemMessage = promptTemplate.createMessage(Map.of("endCity", endCity));
-
-            // 构建完整的消息列表：系统消息 + 历史记录 + 当前用户消息
-            List<Message> messages = new ArrayList<>();
-            messages.add(systemMessage);
-            messages.addAll(history);
-            messages.add(userMessage);
-
-            // 创建Prompt
-            Prompt prompt = new Prompt(messages);
-
-            // 调用AI服务并获取响应
-            Flux<String> response = chatClient.prompt(prompt)
-                    .stream()
-                    .content();
-
-            // 收集完整的响应内容（用于保存到历史记录）
-            StringBuilder fullResponse = new StringBuilder();
-
-            return response
-                    .doOnNext(fullResponse::append)
-                    .doOnComplete(() -> {
-                        // 对话完成后，将用户消息和AI响应添加到历史记录
-                        if (!fullResponse.isEmpty()) {
-                            // 添加用户消息到历史
-                            history.add(userMessage);
-
-                            // 添加AI响应到历史
-                            history.add(new AssistantMessage(fullResponse.toString()));
-
-                            // 限制历史记录大小，移除最旧的消息
-                            while (history.size() > MAX_HISTORY_SIZE) {
-                                // 保留系统消息，只移除用户和助手消息
-                                if (history.size() > 2) { // 确保至少保留一对对话
-                                    history.removeFirst(); // 移除最旧的用户消息
-                                    history.removeFirst(); // 移除对应的助手消息
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                    });
+        if (jwtUtil.isExpiration(token)
+                || res.getId() == null
+                || !res.getUserName().equals(info[1])
+                || !hash.equals(info[2])) {
+            return Flux.just("{\"error\":\"身份验证失败，无法获取行程\"}");
         }
-        return Flux.just("身份验证失败，无法获取行程");
+        String userId = info[0];
+
+        /* ---------------- 2. 构造 prompt ---------------- */
+        String promptText;
+        if (userInput == null || userInput.trim().isEmpty()) {
+            promptText = buildJsonTravelPrompt(startCity, endCity, startDate, endDate);
+        } else {
+            promptText = buildJsonTravelPromptWithUserInput(userInput, startCity, endCity, startDate, endDate);
+        }
+
+        /* ---------------- 3. 流式调用 & 落盘 ---------------- */
+        StringBuilder jsonBuffer = new StringBuilder();
+        String redisKey = "user:formated:".concat(res.getId().substring(0, 16));
+
+        return chatModel.stream(new Prompt(promptText))
+                .map(response -> response.getResult().getOutput().getText())
+                .doOnNext(jsonBuffer::append)
+                .doOnComplete(() -> {
+                    String raw = jsonBuffer.toString()
+                            .replaceFirst("(?is)^\\s*```(?:json)?\\s*", "")
+                            .replaceFirst("(?is)\\s*```\\s*$", "")
+                            .trim();
+
+                    /* 写 Redis */
+                    redisTemplate.opsForValue().set(redisKey, raw, 24, TimeUnit.HOURS);
+                    log.info("JSON 旅行计划已写入 Redis，key={}", redisKey);
+
+                    /* 历史记录只存 AI 返回的 JSON */
+                    List<Message> history = conversationHistory.computeIfAbsent(userId, k -> new ArrayList<>());
+                    history.add(new UserMessage(userInput == null ? "" : userInput));
+                    history.add(new AssistantMessage(raw));
+                    while (history.size() > MAX_HISTORY_SIZE) {
+                        if (history.size() > 2) {
+                            history.removeFirst();
+                            history.removeFirst();
+                        } else break;
+                    }
+                });
+    }
+
+    /* --------------------------------------------------
+     * 下面 2 个 prompt 构造器强制 AI 输出指定 JSON 格式
+     * -------------------------------------------------- */
+    private String buildJsonTravelPrompt(String start, String end,
+                                         LocalDate startDate, LocalDate endDate) {
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return String.format("""
+        你是资深旅行规划师。请严格按照以下 JSON 格式返回行程，不要有任何额外文字。
+        字段说明：
+          - description：支持 Markdown 格式，可用 **加粗**、- 列表、> 引用等
+          - cost：人民币元，可写区间如 "50-80"
+          - durationHours：数字，可小数
+        行程天数：%d 天
+        出发：%s → %s，%s 至 %s
+
+        输出格式：
+        {
+          "days": [
+            {
+              "dayIndex": 1,
+              "date": "yyyy-MM-dd",
+              "label": "第1天",
+              "items": [
+                {
+                  "time": "HH:mm",
+                  "title": "活动名称",
+                  "description": "简要说明（支持Markdown）",
+                  "attractions": "景点名称",
+                  "cost": "费用",
+                  "durationHours": 时长
+                }
+              ]
+            }
+          ]
+        }
+        """, days, start, end, startDate.format(fmt), endDate.format(fmt));
+    }
+
+    private String buildJsonTravelPromptWithUserInput(String userInput,
+                                                      String start, String end,
+                                                      LocalDate startDate, LocalDate endDate) {
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return String.format("""
+        你是资深旅行规划师。用户已对行程提出修改要求，请基于要求调整并重新输出完整 JSON。
+        输出格式与字段要求与刚才完全相同，description 仍支持 Markdown。
+
+        用户修改要求：
+        %s
+
+        行程天数：%d 天
+        出发：%s → %s，%s 至 %s
+
+        请直接返回 JSON，不要任何额外文字。
+        """, userInput, days, start, end, startDate.format(fmt), endDate.format(fmt));
     }
 
     /**
