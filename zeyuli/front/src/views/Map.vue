@@ -108,59 +108,16 @@
   </div>
 </template>
 
-
-// todo 待完善
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
+// todo 待完善
 const router = useRouter()
 
 // 导航到指定页面
 const navigateTo = (path) => {
   router.push(path)
 }
-
-// TODO: 完善地图功能所需的状态和方法
-const mapData = ref({
-  locations: [
-    { id: 1, name: '故宫博物院', type: 'attraction', lat: 39.9163, lng: 116.3972, color: 'blue' },
-    { id: 2, name: '四季民福烤鸭', type: 'restaurant', lat: 39.9125, lng: 116.4028, color: 'green' },
-    { id: 3, name: '景山公园', type: 'park', lat: 39.9284, lng: 116.3956, color: 'orange' }
-  ],
-  totalDistance: '12.5km',
-  estimatedTime: '45分钟'
-})
-
-// TODO: 初始化地图
-const initMap = () => {
-  // 这里应该初始化真实的地图服务，例如高德地图或百度地图
-  console.log('初始化地图...')
-}
-
-// TODO: 搜索功能
-const searchLocations = (keyword) => {
-  // 实现搜索地点功能
-  console.log('搜索关键词:', keyword)
-}
-
-// TODO: 路线规划功能
-const planRoute = () => {
-  // 实现路线规划逻辑
-  console.log('规划路线...')
-}
-
-onMounted(() => {
-  initMap()
-})
-
-
-// const router = useRouter()
-//
-// // 导航到指定页面
-// const navigateTo = (path) => {
-//   router.push(path)
-// }
 </script>
 
 <style scoped>
