@@ -1,5 +1,51 @@
 <template>
-  <div class="map-wrapper" ref="containerRef">
+  <div class="app-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+      <div class="sidebar-brand">
+        <div class="brand-row" @click="navigateTo('/home')" title="回到首页">
+          <div class="brand-logo">🧳</div>
+          <div class="brand-text">TravelMate</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-item" @click="navigateTo('/home')">
+          <span class="icon">🏠</span>
+          <span class="label">首页</span>
+        </div>
+        <div class="sidebar-item" @click="navigateTo('/result')">
+          <span class="icon">📅</span>
+          <span class="label">我的行程</span>
+        </div>
+        <div class="sidebar-item active" @click="navigateTo('/map')">
+          <span class="icon">🗺️</span>
+          <span class="label">地图视图</span>
+        </div>
+        <div class="sidebar-item" @click="navigateTo('/budget')">
+          <span class="icon">💰</span>
+          <span class="label">预算管理</span>
+        </div>
+        <div class="sidebar-item" @click="navigateTo('/profile')">
+          <span class="icon">👤</span>
+          <span class="label">个人中心</span>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- 主要内容区 -->
+    <main class="main-content">
+      <button
+          class="edge-toggle"
+          type="button"
+          @click="toggleSidebar"
+          :aria-label="sidebarCollapsed ? '打开侧边栏' : '收起侧边栏'"
+          :title="sidebarCollapsed ? '打开侧边栏' : '收起侧边栏'"
+      >
+        <span class="chev" :class="{ right: sidebarCollapsed }"></span>
+      </button>
+
+      <div class="map-wrapper" ref="containerRef">
     <!-- 地图视口 -->
     <div 
       class="map-viewport"
@@ -78,12 +124,30 @@
       </div>
     </div>
     
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { getRoute } from '../api/map'
+
+const router = useRouter()
+
+// 侧边栏状态
+const sidebarCollapsed = ref(false)
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  // 侧边栏动画结束后更新地图尺寸，防止变形
+  setTimeout(() => {
+    updateSize()
+  }, 300)
+}
+const navigateTo = (path) => {
+  router.push(path)
+}
 
 // 常量定义
 const TILE_SIZE = 256
@@ -181,7 +245,7 @@ const visibleTiles = computed(() => {
         x: screenX,
         y: screenY,
         // 使用高德地图官方开源 XYZ 瓦片服务 (标准路网)
-        // style=7: 矢量路网, style=6: 卫星图 => 可根据需求调整
+        // style=7: 矢量路网, style=6: 卫星图 => 卫星图不可用
         url: `https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x=${normalizedCol}&y=${row}&z=${z}`
       })
     }
@@ -320,7 +384,160 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.app-layout {
+  /* 主题变量（紫色基调） */
+  --purple-1: #667eea;
+  --purple-2: #764ba2;
+  --ink: #0f172a;
+  --stroke: rgba(15, 23, 42, 0.08);
+  --glass: rgba(255, 255, 255, 0.78);
+  --glass-2: rgba(255, 255, 255, 0.62);
 
+  --sidebar-w: 239px;
+
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  height: 100vh;
+  width: 100vw;
+  gap: 0;
+  column-gap: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.app-layout.sidebar-collapsed {
+  --sidebar-w: 0px;
+}
+
+/* 滚动条 */
+.sidebar {
+  grid-column: 1;
+  min-width: 0;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+  border-right: 1px solid rgba(15, 23, 42, 0.06);
+  z-index: 10;
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.sidebar.collapsed {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-12px);
+}
+
+.sidebar-brand {
+  padding: 18px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  box-shadow: 0 16px 36px rgba(102, 126, 234, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.brand-text {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #1d4ed8;
+  white-space: nowrap;
+  font-size: 20px;
+}
+
+.sidebar-nav {
+  padding: 8px 0;
+}
+.sidebar-item {
+  padding: 14px 18px;
+  margin: 8px 14px;
+  border-radius: 16px;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  user-select: none;
+}
+.sidebar-item:hover {
+  background: rgba(15, 23, 42, 0.04);
+  transform: translateY(-1px);
+}
+.sidebar-item.active {
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(102, 126, 234, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.icon {
+  font-size: 18px;
+}
+.label {
+  white-space: nowrap;
+  font-size: 16px;
+}
+
+/* ====== 主界面 ====== */
+.main-content {
+  grid-column: 2;
+  min-width: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100vh;
+}
+
+/* ====== 分界线按钮 ====== */
+.edge-toggle {
+  position: absolute;
+  left: 30px;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.edge-toggle:hover {
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.chev {
+  width: 10px;
+  height: 10px;
+  border-right: 3px solid rgba(76, 29, 149, 0.75);
+  border-bottom: 3px solid rgba(76, 29, 149, 0.75);
+  transform: rotate(135deg);
+  transition: transform 0.2s ease;
+}
+.chev.right {
+  transform: rotate(-45deg);
+}
+
+.app-layout.sidebar-collapsed .edge-toggle {
+  transform: translateX(6px);
+}
 
 .map-wrapper {
   position: relative;
