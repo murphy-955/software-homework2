@@ -78,19 +78,19 @@
             <!-- 行程头部 -->
             <div class="result-header">
               <div class="header-left">
-                <h1 class="plan-title">{{ itinerary.planName || '我的旅行行程' }}</h1>
+                <h1 class="plan-title">{{ '我的旅行行程' }}</h1>
                 <div class="plan-meta">
                   <span class="meta-tag">
                     <span class="meta-icon">📅</span>
-                    {{ itinerary.days || 3 }}天
+                    {{ totalDays || 3 }}天
                   </span>
                   <span class="meta-tag">
                     <span class="meta-icon">💰</span>
-                    ¥{{ itinerary.totalBudget || 1500 }}
+                    ¥{{ 2500 }}
                   </span>
                   <span class="meta-tag">
                     <span class="meta-icon">📍</span>
-                    {{ itinerary.city || '北京' }}
+                    {{ '北京' }}
                   </span>
                 </div>
               </div>
@@ -98,29 +98,29 @@
               <!-- 2. 删除“保存”模块：这里原来是保存按钮，已经移除 -->
             </div>
 
+
             <!-- 天数导航 -->
             <div class="day-navigation">
               <div class="day-scroll">
                 <button
-                    v-for="day in itinerary.days || 3"
-                    :key="day"
+                    v-for="day in itinerary.days"
+                    :key="day.dayIndex"
                     type="button"
                     class="day-tab"
-                    :class="{ active: currentDay === day }"
-                    @click="currentDay = day"
+                    :class="{ active: currentDay === day.dayIndex }"
+                    @click="currentDay = day.dayIndex"
                 >
-                  <span class="day-number">第{{ day }}天</span>
-                  <span class="day-date">{{ getDayDate(day) }}</span>
+                  <span class="day-number">{{ day.label }}</span>
+                  <span class="day-date">{{ formatDate(day.date) }}</span>
                 </button>
               </div>
             </div>
 
             <!-- 当天行程内容 -->
-            <!-- 4. 主行程整体(main-card)有右侧滚动条，这里不再单独控制滚动 -->
             <div class="day-content">
               <div class="day-timeline">
                 <div
-                    v-for="(item, index) in currentDayItinerary.attractions"
+                    v-for="(item, index) in currentDayItinerary.items"
                     :key="index"
                     class="timeline-item"
                 >
@@ -128,26 +128,24 @@
                     <div class="marker-dot"></div>
                     <div
                         class="marker-line"
-                        v-if="index < currentDayItinerary.attractions.length - 1"
+                        v-if="index < currentDayItinerary.items.length - 1"
                     ></div>
                   </div>
 
                   <div class="timeline-content glass-card">
                     <div class="timeline-time">{{ item.time || '09:00' }}</div>
                     <div class="timeline-main">
-                      <h3 class="attraction-name">{{ item.name || '故宫博物院' }}</h3>
-                      <p class="attraction-desc">
-                        {{ item.description || '参观世界文化遗产，感受明清皇家宫殿的雄伟壮观' }}
-                      </p>
+                      <h3 class="attraction-name">{{ item.title || '景点名称' }}</h3>
+                      <p class="attraction-desc" v-html="item.description"></p>
                       <div class="attraction-meta">
-                        <span class="cost-badge">
-                          <span class="cost-icon">💰</span>
-                          ¥{{ item.cost || 60 }}
-                        </span>
+            <span class="cost-badge">
+              <span class="cost-icon">💰</span>
+              {{ item.cost || '免费' }}
+            </span>
                         <span class="duration-badge">
-                          <span class="duration-icon">⏱️</span>
-                          {{ item.duration || '2-3小时' }}
-                        </span>
+              <span class="duration-icon">⏱️</span>
+              {{ item.durationHours || '2小时' }}
+            </span>
                         <button
                             type="button"
                             class="btn btn-text btn-detail"
@@ -161,6 +159,9 @@
                 </div>
               </div>
             </div>
+
+
+
           </div>
 
           <!-- 右侧信息面板 -->
@@ -212,7 +213,7 @@
                 <div class="stat-item">
                   <div class="stat-icon">📅</div>
                   <div class="stat-content">
-                    <div class="stat-value">{{ itinerary.days || 3 }}天</div>
+                    <div class="stat-value">{{  totalDays || 3 }}天</div>
                     <div class="stat-label">总天数</div>
                   </div>
                 </div>
@@ -236,7 +237,7 @@
                 <div class="stat-item">
                   <div class="stat-icon">🚗</div>
                   <div class="stat-content">
-                    <div class="stat-value">45.2km</div>
+                    <div class="stat-value">{{ randomDistance }}km</div>
                     <div class="stat-label">总交通距离</div>
                   </div>
                 </div>
@@ -273,110 +274,164 @@ const currentDay = ref(1);
 
 // 行程数据
 const itinerary = ref({
-  planName: "北京三日文化之旅",
-  days: 3,
-  totalBudget: 1500,
-  city: "北京",
-  dailyItineraries: [
-    {
-      day: 1,
-      attractions: [
-        {
-          name: "故宫博物院",
-          time: "09:00",
-          cost: 60,
-          duration: "2-3小时",
-          description: "参观世界文化遗产，感受明清皇家宫殿的雄伟壮观"
-        },
-        {
-          name: "景山公园",
-          time: "14:00",
-          cost: 2,
-          duration: "1-2小时",
-          description: "俯瞰故宫全景，欣赏北京城景"
-        },
-        {
-          name: "王府井步行街",
-          time: "18:00",
-          cost: 100,
-          duration: "2小时",
-          description: "品尝北京小吃，体验商业街繁华"
-        }
-      ],
-      restaurants: ["全聚德烤鸭", "老北京炸酱面"]
-    },
-    {
-      day: 2,
-      attractions: [
-        {
-          name: "天坛公园",
-          time: "09:00",
-          cost: 15,
-          duration: "2小时",
-          description: "古代皇帝祭天场所，建筑精美"
-        },
-        {
-          name: "颐和园",
-          time: "13:00",
-          cost: 30,
-          duration: "3-4小时",
-          description: "皇家园林，湖光山色美不胜收"
-        }
-      ],
-      restaurants: ["东来顺涮羊肉", "护国寺小吃"]
-    },
-    {
-      day: 3,
-      attractions: [
-        {
-          name: "长城八达岭",
-          time: "08:00",
-          cost: 40,
-          duration: "全天",
-          description: "世界奇迹，感受古代军事防御工程"
-        },
-        {
-          name: "鸟巢水立方",
-          time: "17:00",
-          cost: 0,
-          duration: "1-2小时",
-          description: "现代奥运场馆，夜景迷人"
-        }
-      ],
-      restaurants: ["北京四合院私房菜"]
-    }
-  ]
+  days: []
+});
+// const itinerary = ref({
+//   planName: "北京三日文化之旅",
+//   days: 3,
+//   totalBudget: 1500,
+//   city: "北京",
+//   dailyItineraries: [
+//     {
+//       day: 1,
+//       attractions: [
+//         {
+//           name: "故宫博物院",
+//           time: "09:00",
+//           cost: 60,
+//           duration: "2-3小时",
+//           description: "参观世界文化遗产，感受明清皇家宫殿的雄伟壮观"
+//         },
+//         {
+//           name: "景山公园",
+//           time: "14:00",
+//           cost: 2,
+//           duration: "1-2小时",
+//           description: "俯瞰故宫全景，欣赏北京城景"
+//         },
+//         {
+//           name: "王府井步行街",
+//           time: "18:00",
+//           cost: 100,
+//           duration: "2小时",
+//           description: "品尝北京小吃，体验商业街繁华"
+//         }
+//       ],
+//       restaurants: ["全聚德烤鸭", "老北京炸酱面"]
+//     },
+//     {
+//       day: 2,
+//       attractions: [
+//         {
+//           name: "天坛公园",
+//           time: "09:00",
+//           cost: 15,
+//           duration: "2小时",
+//           description: "古代皇帝祭天场所，建筑精美"
+//         },
+//         {
+//           name: "颐和园",
+//           time: "13:00",
+//           cost: 30,
+//           duration: "3-4小时",
+//           description: "皇家园林，湖光山色美不胜收"
+//         }
+//       ],
+//       restaurants: ["东来顺涮羊肉", "护国寺小吃"]
+//     },
+//     {
+//       day: 3,
+//       attractions: [
+//         {
+//           name: "长城八达岭",
+//           time: "08:00",
+//           cost: 40,
+//           duration: "全天",
+//           description: "世界奇迹，感受古代军事防御工程"
+//         },
+//         {
+//           name: "鸟巢水立方",
+//           time: "17:00",
+//           cost: 0,
+//           duration: "1-2小时",
+//           description: "现代奥运场馆，夜景迷人"
+//         }
+//       ],
+//       restaurants: ["北京四合院私房菜"]
+//     }
+//   ]
+// });
+//模拟获取
+onMounted(async () => {
+  try {
+    // 这里需要替换成你实际请求的 URL
+    const response = await fetch('http://localhost:8080/user/getTravelInfo?');
+    const data = await response.json();
+    itineraryData.value = data.days;  // 这里假设返回的数据结构是 days
+  } catch (error) {
+    console.error("请求数据失败:", error);
+  }
 });
 
 // 预算分解数据
-const budgetItems = ref([
-  { category: "门票", amount: 300, percentage: 20, color: "#667eea" },
-  { category: "餐饮", amount: 600, percentage: 40, color: "#764ba2" },
-  { category: "住宿", amount: 450, percentage: 30, color: "#4f46e5" },
-  { category: "交通", amount: 150, percentage: 10, color: "#8b5cf6" }
-]);
-
-// 计算属性
-const currentDayItinerary = computed(() => {
-  return (
-      itinerary.value.dailyItineraries.find(
-          (d) => d.day === currentDay.value
-      ) || itinerary.value.dailyItineraries[0]
-  );
+//公里数
+const randomDistance = computed(() => {
+  // 生成30-100公里之间的随机数
+  return (30 + Math.random() * 70).toFixed(1);
 });
 
-const totalAttractions = computed(() => {
-  return itinerary.value.dailyItineraries.reduce(
-      (sum, day) => sum + day.attractions.length,
-      0
+// 将budgetItems改为计算属性
+const budgetItems = computed(() => {
+  // 生成符合要求的随机百分比分配
+  const housingPercent = 35 + Math.random() * 5; // 35%-40%
+  const foodPercent = 75 - housingPercent; // 保证前两项之和为75%
+  const transportPercent = 10 + Math.random() * 5; // 10%-15%
+  const ticketPercent = 25 - transportPercent; // 保证后两项之和为25%
+
+  // 总预算假设为2500元（根据模板中的数据）
+  const totalBudget = 2500;
+
+  // 根据百分比计算各项金额
+  return [
+    {
+      category: "门票",
+      amount: Math.round(totalBudget * ticketPercent / 100),
+      percentage: parseFloat(ticketPercent.toFixed(2)),
+      color: "#667eea"
+    },
+    {
+      category: "餐饮",
+      amount: Math.round(totalBudget * foodPercent / 100),
+      percentage: parseFloat(foodPercent.toFixed(2)),
+      color: "#764ba2"
+    },
+    {
+      category: "住宿",
+      amount: Math.round(totalBudget * housingPercent / 100),
+      percentage: parseFloat(housingPercent.toFixed(2)),
+      color: "#4f46e5"
+    },
+    {
+      category: "交通",
+      amount: Math.round(totalBudget * transportPercent / 100),
+      percentage: parseFloat(transportPercent.toFixed(2)),
+      color: "#8b5cf6"
+    }
+  ];
+});
+
+
+// 计算属性//修改1
+const currentDayItinerary = computed(() => {
+  return (
+      itinerary.value.days.find(day => day.dayIndex === currentDay.value) || {}
   );
+});
+const totalDays = computed(() => itinerary.value.days.length);
+const totalAttractions = computed(() => {
+  // return itinerary.value.dailyItineraries.reduce(
+  //     (sum, day) => sum + day.attractions.length,
+  //     0
+  // );
+  return 3;//临时修改测试
 });
 
 const totalRestaurants = computed(() => {
-  return itinerary.value.dailyItineraries.reduce(
-      (sum, day) => sum + (day.restaurants?.length || 0),
-      0
-  );
+  // return itinerary.value.dailyItineraries.reduce(
+  //     (sum, day) => sum + (day.restaurants?.length || 0),
+  //     0
+  // );
+  return 0;//临时修改测试
 });
 
 // 图表引用
@@ -385,10 +440,8 @@ const chartRef = ref(null);
 // 方法
 const navigateTo = (path) => router.push(path);
 
-const getDayDate = (day) => {
-  const today = new Date();
-  const targetDate = new Date(today);
-  targetDate.setDate(today.getDate() + day - 1);
+const formatDate = (date) => {
+  const targetDate = new Date(date);
   return targetDate.toLocaleDateString("zh-CN", {
     month: "short",
     day: "numeric"
