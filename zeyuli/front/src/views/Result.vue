@@ -278,16 +278,155 @@ const currentDay = ref(1);
 const itinerary = ref({
   days: []
 });
+// 测试用 itinerary 数据对象
+const testItinerary = {
+  days: [
+    {
+      dayIndex: 1,
+      date: "2025-12-12",
+      label: "成都文化初体验",
+      items: [
+        {
+          time: "09:00-12:00",
+          title: "参观武侯祠",
+          description: "探索三国历史遗迹，了解诸葛亮与刘备的故事。",
+          attractions: "武侯祠",
+          cost: "门票约50元",
+          durationHours: 3
+        },
+        {
+          time: "13:00-16:00",
+          title: "游览锦里古街",
+          description: "体验传统川西建筑风格，品尝当地小吃如龙抄手、担担面。",
+          attractions: "锦里古街",
+          cost: "免费进入，小吃费用约30元",
+          durationHours: 3
+        },
+        {
+          time: "19:00-21:00",
+          title: "观看川剧变脸表演",
+          description: "欣赏四川传统戏曲艺术，包括变脸、吐火等绝技。",
+          attractions: "蜀风雅韵剧院",
+          cost: "门票约100元",
+          durationHours: 2
+        }
+      ]
+    },
+    {
+      dayIndex: 2,
+      date: "2025-12-13",
+      label: "历史与艺术之旅",
+      items: [
+        {
+          time: "10:00-13:00",
+          title: "参观杜甫草堂",
+          description: "探访唐代诗人杜甫的故居，感受古典文学氛围。",
+          attractions: "杜甫草堂",
+          cost: "门票约60元",
+          durationHours: 3
+        },
+        {
+          time: "14:00-17:00",
+          title: "游览宽窄巷子",
+          description: "漫步于清代古街区，体验老成都的悠闲生活。",
+          attractions: "宽窄巷子",
+          cost: "免费进入，购物费用自理",
+          durationHours: 3
+        },
+        {
+          time: "18:00-20:00",
+          title: "品尝正宗川菜",
+          description: "在本地餐厅享用麻辣火锅或宫保鸡丁等经典菜肴。",
+          attractions: "陈麻婆豆腐餐厅",
+          cost: "人均约80元",
+          durationHours: 2
+        }
+      ]
+    },
+    {
+      dayIndex: 3,
+      date: "2025-12-14",
+      label: "自然与民俗探索",
+      items: [
+        {
+          time: "08:00-12:00",
+          title: "参观都江堰水利工程",
+          description: "了解古代水利智慧，欣赏岷江风光。",
+          attractions: "都江堰景区",
+          cost: "门票约90元",
+          durationHours: 4
+        },
+        {
+          time: "13:00-16:00",
+          title: "游览青城山",
+          description: "探访道教发源地，享受山林清幽。",
+          attractions: "青城山",
+          cost: "门票约80元",
+          durationHours: 3
+        },
+        {
+          time: "19:00-21:00",
+          title: "体验茶馆文化",
+          description: "在传统茶馆品茶，听评书或打麻将。",
+          attractions: "鹤鸣茶社",
+          cost: "茶费约30元",
+          durationHours: 2
+        }
+      ]
+    },
+    {
+      dayIndex: 4,
+      date: "2025-12-15",
+      label: "现代与传统融合",
+      items: [
+        {
+          time: "09:00-12:00",
+          title: "参观成都博物馆",
+          description: "了解成都从古至今的历史文化变迁。",
+          attractions: "成都博物馆",
+          cost: "免费",
+          durationHours: 3
+        },
+        {
+          time: "13:00-15:00",
+          title: "购物与休闲",
+          description: "在春熙路商圈逛街，购买特产如蜀绣或茶叶。",
+          attractions: "春熙路",
+          cost: "购物费用自理",
+          durationHours: 2
+        },
+        {
+          time: "16:00-18:00",
+          title: "结束行程",
+          description: "整理行李，准备返程。",
+          attractions: "",
+          cost: "待定",
+          durationHours: 2
+        }
+      ]
+    }
+  ],
+  status: "draft",
+  isDraft: true
+};
 
 
 //模拟获取
 onMounted(async () => {
   try {
-    // 289 行附近
     const response = await getTravelInfo(localStorage.token);
-// 改成下面这样——兼容“后端直接返回 days”和“后端包了一层 data”两种情况
-    const data = response.data || response;   // ①
-    itinerary.value = data.days || [];        // ②
+    // 适配新的 JSON 结构
+    const data = response.data || response;
+
+    // itinerary.value = testItinerary;
+
+    // 修改点 1: 新格式中核心数据在 itinerary 字段下
+    if (data.itinerary) {
+      itinerary.value = data.itinerary;
+    } else {
+      // 容错处理
+      itinerary.value = { days: [] };
+    }
   } catch (error) {
     console.error("请求数据失败:", error);
   }
@@ -345,16 +484,20 @@ const budgetItems = computed(() => {
 
 // 计算属性//修改1
 const currentDayItinerary = computed(() => {
-  return (itinerary.value.days || [])
-      .find(day => day && day.dayIndex === currentDay.value) || {};
+  return (
+      itinerary.value.days.find(day => day.dayIndex === currentDay.value) || {}
+  );
 });
-const totalDays = 3
+const totalDays = computed(() => {
+  return itinerary.value.days ? itinerary.value.days.length : 0;
+});
+
 const totalAttractions = computed(() => {
-  // return itinerary.value.dailyItineraries.reduce(
-  //     (sum, day) => sum + day.attractions.length,
-  //     0
-  // );
-  return 3;//临时修改测试
+  if (!itinerary.value.days) return 0;
+  return itinerary.value.days.reduce((sum, day) => {
+    // 统计每一天 items 数组的长度
+    return sum + (day.items ? day.items.length : 0);
+  }, 0);
 });
 
 const totalRestaurants = computed(() => {
