@@ -13,7 +13,7 @@ Content-Type: application/json
 
 ###
 POST http://localhost:8080/user/cacheTravelInfo?
-    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKTQqAIBBA4bvMuoXjvx6iO4w5QQtDEiuI7p4t3-N7oPUEEbQLARUKQkWarCNjtMuYJPscrEaYoDc-Zio8NOWy7WPVK58jF7lK-RO-K0R01lgRvPHvB7t74OFeAAAA.LiiamimZWNQ6jkSaBpmXjkyRsvqWrzTOn7A2H5WakPid3o0d_0CviiJtqv4uActRk0CBbq_b_UCPNxSA0mUvCw
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169kChFGEId6iCiQcMkaAmxt3F4_95D9Q2QwBy3qNBJWiEhJ1YSy7irNMYPRPCAK2mY5KcupaYt72vcsWz56JXrX-S7gIBHVtGRWzfD8O1ktpeAAAA.fStYZRI_KOZhDFohqGwJt7KQnrTGtyY8qgaY8zGWJTKgEpO4KtKWr-AY4auyK_F7PL2RV4JCUsrg0T80yp-jKg
 Content-Type: application/json
 
 {
@@ -35,7 +35,7 @@ GET http://localhost:8080/user/getTravelInfo?
 ###
 GET http://localhost:8080/deekseek/planItinerary?
     token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169mCBgmUIdyiCiQcMkaAmxt3F4_95D9QWwINxzKhxFNRixDohMi5iUGmKbA3CAK2mY5acupaYt72vcsWz56JWpX6S7gIenSViq5neDxen4h5eAAAA.7zLvlvBpc8rzcx7Sh3WyPtXjiktn0rNtAnlGyQoibAceJ-bZsoqMrU4gyFJ5SyJsQRNkqkjqa0KFoRy_AIVJVA
-    &startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
+    &startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05&userInput=上海三日游
 
 ###
 POST http://localhost:8080/deekseek/formatUserInput
@@ -86,3 +86,17 @@ GET http://localhost:8080/map/poi-details/poiId=B0FFFAB6J2
 
 ###
 GET http://localhost:8080/map/attractions-by-city?city=南京&page=1&pageSize=10
+
+
+###
+POST http://localhost:8080/personality-test/calculate-result
+Content-Type: application/json
+
+{
+  "token": "eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169kChFGEId6iCiQcMkaAmxt3F4_95D9Q2QwBy3qNBJWiEhJ1YSy7irNMYPRPCAK2mY5KcupaYt72vcsWz56JXrX-S7gIBHVtGRWzfD8O1ktpeAAAA.fStYZRI_KOZhDFohqGwJt7KQnrTGtyY8qgaY8zGWJTKgEpO4KtKWr-AY4auyK_F7PL2RV4JCUsrg0T80yp-jKg",
+  "Q1": "Q1C",
+  "Q2": "Q2D",
+  "Q3": "Q3D",
+  "Q4": "Q4B",
+  "Q5": "Q5C"
+}
