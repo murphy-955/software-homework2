@@ -262,6 +262,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import {getTravelInfo, result} from "../api/result.js";
+import {getHot} from "../api/studentRoute.js";
 
 const router = useRouter();
 
@@ -355,8 +357,8 @@ const itinerary = ref({
 onMounted(async () => {
   try {
     // 这里需要替换成你实际请求的 URL
-    const response = await fetch('http://localhost:8080/user/getTravelInfo?');
-    const data = await response.json();
+    const response = await getTravelInfo(localStorage.token);
+    const data = await response.data;
     itineraryData.value = data.days;  // 这里假设返回的数据结构是 days
   } catch (error) {
     console.error("请求数据失败:", error);
