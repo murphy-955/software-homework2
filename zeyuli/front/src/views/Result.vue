@@ -1,172 +1,254 @@
 <template>
-  <div class="app-layout">
-    <!-- 侧边栏 -->
-    <aside class="sidebar">
-      <div class="p-6 border-b">
-        <div class="font-bold text-blue-600 text-xl">TravelMate</div>
+  <!-- 使用与Home相同的布局系统 -->
+  <div class="app-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <!-- Sidebar（与Home完全一致） -->
+    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+      <div class="sidebar-brand">
+        <div class="brand-row" @click="navigateTo('/home')" title="回到首页">
+          <div class="brand-logo">🧳</div>
+          <div class="brand-text">TravelMate</div>
+        </div>
       </div>
-      <nav>
+
+      <nav class="sidebar-nav">
         <div class="sidebar-item" @click="navigateTo('/home')">
           <span class="icon">🏠</span>
-          <span>首页</span>
+          <span class="label">首页</span>
         </div>
         <div class="sidebar-item active" @click="navigateTo('/result')">
           <span class="icon">📅</span>
-          <span>我的行程</span>
+          <span class="label">我的行程</span>
         </div>
         <div class="sidebar-item" @click="navigateTo('/map')">
           <span class="icon">🗺️</span>
-          <span>地图视图</span>
+          <span class="label">地图视图</span>
         </div>
         <div class="sidebar-item" @click="navigateTo('/budget')">
           <span class="icon">💰</span>
-          <span>预算管理</span>
+          <span class="label">预算管理</span>
         </div>
         <div class="sidebar-item" @click="navigateTo('/profile')">
           <span class="icon">👤</span>
-          <span>个人中心</span>
+          <span class="label">个人中心</span>
         </div>
       </nav>
     </aside>
-
-    <!-- 主内容区 -->
+    <!-- 移动端遮罩层 -->
+    <div
+        class="sidebar-overlay"
+        v-if="!sidebarCollapsed"
+        @click="toggleSidebar"
+    ></div>
+    <!-- Main -->
     <main class="main-content">
-      <!-- 顶部导航 -->
-      <header class="header">
-        <div class="flex items-center gap-4">
-          <div class="relative">
-            <input 
-              type="text" 
-              placeholder="搜索行程、景点..." 
-              class="input pl-10 w-64"
-            />
-            <span class="icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">🔍</span>
-          </div>
+      <!-- 折叠按钮 -->
+      <button
+          class="edge-toggle"
+          type="button"
+          @click="toggleSidebar"
+          :aria-label="sidebarCollapsed ? '打开侧边栏' : '收起侧边栏'"
+          :title="sidebarCollapsed ? '打开侧边栏' : '收起侧边栏'"
+      >
+        <span class="chev" :class="{ right: sidebarCollapsed }"></span>
+      </button>
+
+      <!-- Header -->
+      <header class="header header-slogan">
+        <!-- 1. 中间的“我的详细行程” -->
+        <div class="slogan-wrap" aria-label="标语">
+          <span class="slogan-dot"></span>
+          <span class="slogan-text">我的详细行程</span>
+          <span class="slogan-dot"></span>
         </div>
-        <div class="flex items-center gap-4">
-          <button type="button" class="btn btn-text">
-            <span class="icon">🔔</span>
-          </button>
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="icon">👤</span>
-            </div>
-            <span class="text-sm font-medium">张三</span>
+
+        <!-- 右侧用户信息（固定在右边） -->
+        <div class="user-info">
+          <div class="user-avatar">
+            <span class="avatar-icon">👤</span>
           </div>
+          <div class="user-name">张三</div>
         </div>
       </header>
 
       <!-- 内容区域 -->
       <div class="content-area">
-        <div class="card mb-6">
-          <!-- 行程基本信息 -->
-          <div class="flex justify-between items-center mb-4">
-            <div>
-              <h2 class="text-2xl font-bold">{{ itinerary.planName }}</h2>
-              <div class="text-gray-600">{{ itinerary.days }}天 · 预算: ¥{{ itinerary.totalBudget }}</div>
-            </div>
-            <div class="flex gap-2">
-              <button type="button" class="btn btn-secondary">
-                <span class="icon">📤</span>分享
-              </button>
-              <button type="button" class="btn btn-secondary" @click="navigateTo('/edit')">
-                <span class="icon">✏️</span>编辑
-              </button>
-              <button type="button" class="btn btn-primary">
-                <span class="icon">💾</span>保存
-              </button>
-            </div>
-          </div>
+        <div class="result-container">
+          <!-- 主行程卡片 -->
+          <div class="main-card glass-card">
+            <!-- 行程头部 -->
+            <div class="result-header">
+              <div class="header-left">
+                <h1 class="plan-title">{{ itinerary.planName || '我的旅行行程' }}</h1>
+                <div class="plan-meta">
+                  <span class="meta-tag">
+                    <span class="meta-icon">📅</span>
+                    {{ itinerary.days || 3 }}天
+                  </span>
+                  <span class="meta-tag">
+                    <span class="meta-icon">💰</span>
+                    ¥{{ itinerary.totalBudget || 1500 }}
+                  </span>
+                  <span class="meta-tag">
+                    <span class="meta-icon">📍</span>
+                    {{ itinerary.city || '北京' }}
+                  </span>
+                </div>
+              </div>
 
-          <!-- 天数选择器 -->
-          <div class="border-b mb-4">
-            <div class="flex gap-2">
-              <button 
-                v-for="day in itinerary.days" 
-                :key="day"
-                type="button" 
-                :class="['py-3 px-6', currentDay === day ? 'border-b-2 border-blue-500 text-blue-500 font-medium' : 'text-gray-500 hover:text-blue-500']"
-                @click="currentDay = day"
-              >
-                第{{ day }}天
-              </button>
+              <!-- 2. 删除“保存”模块：这里原来是保存按钮，已经移除 -->
             </div>
-          </div>
 
-          <!-- 每日行程详情 -->
-          <div class="space-y-4">
-            <div 
-              v-for="item in currentDayItinerary.attractions" 
-              :key="item.name"
-              class="flex gap-4"
-            >
-              <div class="w-16 text-gray-500 font-medium flex-shrink-0">09:00</div>
-              <div class="flex-1">
-                <div class="p-4 bg-gray-50 rounded-lg">
-                  <h3 class="font-medium">{{ item.name }}</h3>
-                  <p class="text-gray-600 mt-1">参观景点，感受当地文化</p>
-                  <div class="flex justify-between items-center mt-2">
-                    <div class="text-orange-500 font-medium">¥{{ item.cost || 0 }}</div>
-                    <button type="button" class="btn btn-text">查看详情</button>
+            <!-- 天数导航 -->
+            <div class="day-navigation">
+              <div class="day-scroll">
+                <button
+                    v-for="day in itinerary.days || 3"
+                    :key="day"
+                    type="button"
+                    class="day-tab"
+                    :class="{ active: currentDay === day }"
+                    @click="currentDay = day"
+                >
+                  <span class="day-number">第{{ day }}天</span>
+                  <span class="day-date">{{ getDayDate(day) }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 当天行程内容 -->
+            <!-- 4. 主行程整体(main-card)有右侧滚动条，这里不再单独控制滚动 -->
+            <div class="day-content">
+              <div class="day-timeline">
+                <div
+                    v-for="(item, index) in currentDayItinerary.attractions"
+                    :key="index"
+                    class="timeline-item"
+                >
+                  <div class="timeline-marker">
+                    <div class="marker-dot"></div>
+                    <div
+                        class="marker-line"
+                        v-if="index < currentDayItinerary.attractions.length - 1"
+                    ></div>
+                  </div>
+
+                  <div class="timeline-content glass-card">
+                    <div class="timeline-time">{{ item.time || '09:00' }}</div>
+                    <div class="timeline-main">
+                      <h3 class="attraction-name">{{ item.name || '故宫博物院' }}</h3>
+                      <p class="attraction-desc">
+                        {{ item.description || '参观世界文化遗产，感受明清皇家宫殿的雄伟壮观' }}
+                      </p>
+                      <div class="attraction-meta">
+                        <span class="cost-badge">
+                          <span class="cost-icon">💰</span>
+                          ¥{{ item.cost || 60 }}
+                        </span>
+                        <span class="duration-badge">
+                          <span class="duration-icon">⏱️</span>
+                          {{ item.duration || '2-3小时' }}
+                        </span>
+                        <button
+                            type="button"
+                            class="btn btn-text btn-detail"
+                            @click="showDetail(item)"
+                        >
+                          查看详情 →
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 预算分解和行程概览 -->
-        <div class="grid grid-cols-2 gap-6">
-          <!-- 预算分解 -->
-          <div class="card">
-            <h3 class="font-bold text-lg mb-4">预算分解</h3>
-            <div class="flex justify-center mb-6">
-              <div class="w-64 h-64" ref="chartRef"></div>
-            </div>
-            <div class="space-y-3">
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span>门票</span>
-                <span class="text-orange-500 font-medium">¥{{ itinerary.totalBudget * 0.2 }}</span>
-              </div>
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span>餐饮</span>
-                <span class="text-orange-500 font-medium">¥{{ itinerary.totalBudget * 0.4 }}</span>
-              </div>
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span>住宿</span>
-                <span class="text-orange-500 font-medium">¥{{ itinerary.totalBudget * 0.3 }}</span>
-              </div>
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span>交通</span>
-                <span class="text-orange-500 font-medium">¥{{ itinerary.totalBudget * 0.1 }}</span>
-              </div>
-            </div>
-          </div>
+          <!-- 右侧信息面板 -->
+          <div class="side-panel">
+            <!-- 预算分解卡片 -->
+            <div class="info-card glass-card">
+              <h3 class="card-title">
+                <span class="card-icon">💰</span>
+                预算分解
+              </h3>
 
-          <!-- 行程概览 -->
-          <div class="card">
-            <h3 class="font-bold text-lg mb-4">行程概览</h3>
-            <div class="space-y-4">
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">总天数</span>
-                <span class="font-medium">{{ itinerary.days }}天</span>
+              <!-- 3. 减少图表占位高度，让文字整体上移，看起来更紧凑 -->
+              <div class="budget-chart">
+                <div class="chart-container" ref="chartRef"></div>
               </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">总景点数</span>
-                <span class="font-medium">{{ itinerary.dailyItineraries.reduce((sum, day) => sum + day.attractions.length, 0) }}个</span>
+
+              <div class="budget-list">
+                <div
+                    v-for="(item, index) in budgetItems"
+                    :key="index"
+                    class="budget-item"
+                >
+                  <div class="budget-header">
+                    <span class="budget-category">{{ item.category }}</span>
+                    <span class="budget-amount">¥{{ item.amount }}</span>
+                  </div>
+                  <div class="budget-progress">
+                    <div
+                        class="progress-bar"
+                        :style="{
+                        width: item.percentage + '%',
+                        backgroundColor: item.color
+                      }"
+                    ></div>
+                  </div>
+                  <div class="budget-percentage">{{ item.percentage }}%</div>
+                </div>
               </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">总餐饮数</span>
-                <span class="font-medium">{{ itinerary.dailyItineraries.reduce((sum, day) => sum + (day.restaurants?.length || 0), 0) }}个</span>
+            </div>
+
+            <!-- 行程概览卡片 -->
+            <div class="info-card glass-card">
+              <h3 class="card-title">
+                <span class="card-icon">📊</span>
+                行程概览
+              </h3>
+
+              <div class="overview-stats">
+                <div class="stat-item">
+                  <div class="stat-icon">📅</div>
+                  <div class="stat-content">
+                    <div class="stat-value">{{ itinerary.days || 3 }}天</div>
+                    <div class="stat-label">总天数</div>
+                  </div>
+                </div>
+
+                <div class="stat-item">
+                  <div class="stat-icon">📍</div>
+                  <div class="stat-content">
+                    <div class="stat-value">{{ totalAttractions }}个</div>
+                    <div class="stat-label">总景点数</div>
+                  </div>
+                </div>
+
+                <div class="stat-item">
+                  <div class="stat-icon">🍜</div>
+                  <div class="stat-content">
+                    <div class="stat-value">{{ totalRestaurants }}个</div>
+                    <div class="stat-label">餐饮推荐</div>
+                  </div>
+                </div>
+
+                <div class="stat-item">
+                  <div class="stat-icon">🚗</div>
+                  <div class="stat-content">
+                    <div class="stat-value">45.2km</div>
+                    <div class="stat-label">总交通距离</div>
+                  </div>
+                </div>
               </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">总交通距离</span>
-                <span class="font-medium">45.2km</span>
-              </div>
-              <div class="pt-4 border-t">
-                <button type="button" class="btn btn-primary w-full" @click="navigateTo('/map')">
-                  <span class="icon">🗺️</span>查看地图
-                </button>
+
+              <div class="overview-summary">
+                <h4 class="summary-title">行程特点</h4>
+                <div class="summary-tags">
+                  <span class="summary-tag">🏛️ 历史文化</span>
+                  <span class="summary-tag">🍜 美食探索</span>
+                  <span class="summary-tag">📸 拍照圣地</span>
+                </div>
               </div>
             </div>
           </div>
@@ -177,151 +259,1192 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 
-const router = useRouter()
+const router = useRouter();
 
-// 模拟行程数据
+// 侧边栏状态
+const sidebarCollapsed = ref(false);
+const toggleSidebar = () => (sidebarCollapsed.value = !sidebarCollapsed.value);
+
+// 当前选择的天数
+const currentDay = ref(1);
+
+// 行程数据
 const itinerary = ref({
-  planName: '北京文化三日游',
-  city: '北京',
+  planName: "北京三日文化之旅",
   days: 3,
-  totalBudget: 1560,
-  estimatedCost: 1500,
-  accommodationSuggestion: '建议住在市中心，方便出行',
+  totalBudget: 1500,
+  city: "北京",
   dailyItineraries: [
     {
       day: 1,
       attractions: [
-        { name: '故宫博物院', lat: 39.9042, lng: 116.4074, cost: 60 },
-        { name: '景山公园', lat: 39.9163, lng: 116.3972, cost: 20 }
+        {
+          name: "故宫博物院",
+          time: "09:00",
+          cost: 60,
+          duration: "2-3小时",
+          description: "参观世界文化遗产，感受明清皇家宫殿的雄伟壮观"
+        },
+        {
+          name: "景山公园",
+          time: "14:00",
+          cost: 2,
+          duration: "1-2小时",
+          description: "俯瞰故宫全景，欣赏北京城景"
+        },
+        {
+          name: "王府井步行街",
+          time: "18:00",
+          cost: 100,
+          duration: "2小时",
+          description: "品尝北京小吃，体验商业街繁华"
+        }
       ],
-      restaurants: [
-        { name: '四季民福烤鸭', cost: 120 }
-      ],
-      routes: [],
-      dailyCost: 520,
-      weather: '晴',
-      suggestions: ['建议提前预约故宫门票']
+      restaurants: ["全聚德烤鸭", "老北京炸酱面"]
     },
     {
       day: 2,
       attractions: [
-        { name: '八达岭长城', lat: 40.3599, lng: 116.0208, cost: 40 },
-        { name: '明十三陵', lat: 40.2277, lng: 116.1172, cost: 30 }
+        {
+          name: "天坛公园",
+          time: "09:00",
+          cost: 15,
+          duration: "2小时",
+          description: "古代皇帝祭天场所，建筑精美"
+        },
+        {
+          name: "颐和园",
+          time: "13:00",
+          cost: 30,
+          duration: "3-4小时",
+          description: "皇家园林，湖光山色美不胜收"
+        }
       ],
-      restaurants: [
-        { name: '长城脚下的公社', cost: 100 }
-      ],
-      routes: [],
-      dailyCost: 490,
-      weather: '多云',
-      suggestions: ['长城上风大，建议穿厚衣服']
+      restaurants: ["东来顺涮羊肉", "护国寺小吃"]
     },
     {
       day: 3,
       attractions: [
-        { name: '颐和园', lat: 39.9997, lng: 116.2753, cost: 30 },
-        { name: '圆明园', lat: 40.0025, lng: 116.3163, cost: 25 }
+        {
+          name: "长城八达岭",
+          time: "08:00",
+          cost: 40,
+          duration: "全天",
+          description: "世界奇迹，感受古代军事防御工程"
+        },
+        {
+          name: "鸟巢水立方",
+          time: "17:00",
+          cost: 0,
+          duration: "1-2小时",
+          description: "现代奥运场馆，夜景迷人"
+        }
       ],
-      restaurants: [
-        { name: '全聚德烤鸭', cost: 150 }
-      ],
-      routes: [],
-      dailyCost: 490,
-      weather: '晴',
-      suggestions: ['颐和园面积较大，建议租自行车游览']
+      restaurants: ["北京四合院私房菜"]
     }
-  ],
-  additionalInfo: {},
-  planType: 'cultural'
-})
+  ]
+});
 
-// 当前显示的天数
-const currentDay = ref(1)
+// 预算分解数据
+const budgetItems = ref([
+  { category: "门票", amount: 300, percentage: 20, color: "#667eea" },
+  { category: "餐饮", amount: 600, percentage: 40, color: "#764ba2" },
+  { category: "住宿", amount: 450, percentage: 30, color: "#4f46e5" },
+  { category: "交通", amount: 150, percentage: 10, color: "#8b5cf6" }
+]);
 
-// 计算当前天的行程
+// 计算属性
 const currentDayItinerary = computed(() => {
-  return itinerary.value.dailyItineraries.find(day => day.day === currentDay.value) || itinerary.value.dailyItineraries[0]
-})
+  return (
+      itinerary.value.dailyItineraries.find(
+          (d) => d.day === currentDay.value
+      ) || itinerary.value.dailyItineraries[0]
+  );
+});
 
-// 导航到指定页面
-const navigateTo = (path) => {
-  router.push(path)
-}
+const totalAttractions = computed(() => {
+  return itinerary.value.dailyItineraries.reduce(
+      (sum, day) => sum + day.attractions.length,
+      0
+  );
+});
+
+const totalRestaurants = computed(() => {
+  return itinerary.value.dailyItineraries.reduce(
+      (sum, day) => sum + (day.restaurants?.length || 0),
+      0
+  );
+});
 
 // 图表引用
-const chartRef = ref(null)
-let chartInstance = null
+const chartRef = ref(null);
 
-// 初始化图表
-const initChart = () => {
-  if (chartRef.value) {
-    chartInstance = echarts.init(chartRef.value)
-    const option = {
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 6 },
-        data: [
-          { value: itinerary.value.totalBudget * 0.2, name: '门票', itemStyle: { color: '#1890FF' } },
-          { value: itinerary.value.totalBudget * 0.4, name: '餐饮', itemStyle: { color: '#52C41A' } },
-          { value: itinerary.value.totalBudget * 0.3, name: '住宿', itemStyle: { color: '#FA8C16' } },
-          { value: itinerary.value.totalBudget * 0.1, name: '交通', itemStyle: { color: '#722ED1' } }
-        ]
-      }]
-    }
-    chartInstance.setOption(option)
-  }
-}
+// 方法
+const navigateTo = (path) => router.push(path);
 
-// 监听窗口大小变化，调整图表
-const handleResize = () => {
-  if (chartInstance) {
-    chartInstance.resize()
-  }
-}
+const getDayDate = (day) => {
+  const today = new Date();
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + day - 1);
+  return targetDate.toLocaleDateString("zh-CN", {
+    month: "short",
+    day: "numeric"
+  });
+};
 
-// 组件挂载时初始化图表
+const showDetail = (item) => {
+  console.log("查看详情:", item);
+  // 这里可以添加显示详情的逻辑
+};
+
+// 图表初始化
 onMounted(() => {
-  initChart()
-  window.addEventListener('resize', handleResize)
-})
+  // 这里可以初始化图表
+  // 例如使用 Chart.js 或 ECharts
+});
+
+onUnmounted(() => {
+  // 清理图表
+});
 </script>
 
 <style scoped>
+/* 复用Home的变量和基础样式 */
 .app-layout {
-  display: flex;
+  --purple-1: #667eea;
+  --purple-2: #764ba2;
+  --ink: #0f172a;
+  --stroke: rgba(15, 23, 42, 0.08);
+  --glass: rgba(255, 255, 255, 0.78);
+  --glass-2: rgba(255, 255, 255, 0.62);
+  --sidebar-w: 239px;
+
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
   min-height: 100vh;
+  gap: 0;
+  column-gap: 0;
+  background: radial-gradient(
+      circle at 15% 10%,
+      rgba(255, 255, 255, 0.1),
+      transparent 45%
+  ),
+  radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
+  linear-gradient(135deg, var(--purple-1) 0%, var(--purple-2) 100%);
+  isolation: isolate;
+  position: relative;
 }
 
-/* 图标样式 */
+.app-layout::before {
+  content: "";
+  position: absolute;
+  inset: -120px;
+  background: radial-gradient(
+      circle at 30% 20%,
+      rgba(255, 255, 255, 0.12),
+      transparent 45%
+  ),
+  radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.08), transparent 48%);
+  filter: blur(18px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.app-layout.sidebar-collapsed {
+  --sidebar-w: 0px;
+}
+
+/* Sidebar（与Home完全一致） */
+.sidebar {
+  grid-column: 1;
+  min-width: 0;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+  border-right: 1px solid rgba(15, 23, 42, 0.06);
+  z-index: 10;
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.sidebar.collapsed {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-12px);
+}
+
+.sidebar-brand {
+  padding: 18px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  box-shadow: 0 16px 36px rgba(102, 126, 234, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.brand-text {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #1d4ed8;
+  white-space: nowrap;
+  font-size: 20px;
+}
+
+.sidebar-nav {
+  padding: 8px 0;
+}
+
+.sidebar-item {
+  padding: 14px 18px;
+  margin: 8px 14px;
+  border-radius: 16px;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  user-select: none;
+}
+
+.sidebar-item:hover {
+  background: rgba(15, 23, 42, 0.04);
+  transform: translateY(-1px);
+}
+
+.sidebar-item.active {
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(102, 126, 234, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
 .icon {
   font-size: 18px;
 }
 
-/* 移动端适配 */
+.label {
+  white-space: nowrap;
+  font-size: 16px;
+}
+
+/* Main Content */
+.main-content {
+  grid-column: 2;
+  min-width: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: radial-gradient(
+      circle at 18% 10%,
+      rgba(102, 126, 234, 0.28),
+      transparent 46%
+  ),
+  radial-gradient(circle at 82% 30%, rgba(118, 75, 162, 0.22), transparent 48%),
+  radial-gradient(circle at 60% 90%, rgba(102, 126, 234, 0.16), transparent 52%),
+  linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.22),
+      rgba(118, 75, 162, 0.18)
+  );
+  /* 关键修改：添加整体滚动 */
+  height: 100vh;
+  overflow-y: auto;
+  margin-top: 72px; /* 添加margin-top，避免内容被固定header遮挡 */
+}
+
+.main-content::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Edge Toggle Button */
+.edge-toggle {
+  position: fixed;
+  left: calc(239px + 30px);
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 1100; /* 比header更高的z-index */
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14),
+  inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edge-toggle:hover {
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.16),
+  inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.chev {
+  width: 10px;
+  height: 10px;
+  border-right: 3px solid rgba(76, 29, 149, 0.75);
+  border-bottom: 3px solid rgba(76, 29, 149, 0.75);
+  transform: rotate(135deg);
+  transition: transform 0.2s ease;
+}
+
+.chev.right {
+  transform: rotate(-45deg);
+}
+
+.app-layout.sidebar-collapsed .edge-toggle {
+  left: 15px;
+  transform: translateX(0);
+}
+
+/* Header */
+.header.header-slogan {
+  position: fixed;
+  top: 0;
+  left: 239px;
+  right: 0;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 让中间的标语真正居中 */
+  padding: 0 70px;
+  background: radial-gradient(
+      circle at 20% 0%,
+      rgba(102, 126, 234, 0.22),
+      transparent 55%
+  ),
+  radial-gradient(
+      circle at 80% 100%,
+      rgba(118, 75, 162, 0.18),
+      transparent 60%
+  ),
+  rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  z-index: 1000; /* 提高z-index，确保在最顶层 */
+  transition: left 0.3s ease; /* 添加过渡效果，与侧边栏动画同步 */
+}
+/* 当侧边栏折叠时，调整header的left值 */
+.app-layout.sidebar-collapsed .header.header-slogan {
+  left: 0; /* 侧边栏折叠时，header左对齐 */
+}
+
+
+
+.slogan-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.1),
+  inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  margin: 0 auto;
+}
+
+.slogan-text {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 12px 30px rgba(102, 126, 234, 0.16);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.slogan-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  box-shadow: 0 10px 22px rgba(102, 126, 234, 0.22);
+  opacity: 0.95;
+}
+
+/* User Info */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: absolute; /* 固定在右边，不影响中间居中 */
+  right: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1; /* 确保在header上方 */
+}
+
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  color: white;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.avatar-icon {
+  font-size: 20px;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+/* Content Area */
+.content-area {
+  flex: 1;
+  min-height: calc(100vh - 72px);
+  padding: clamp(20px, 2.5vw, 32px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: transparent;
+}
+
+/* Result Container */
+.result-container {
+  width: min(1400px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  height: calc(100vh - 72px - clamp(32px, 5vw, 64px));
+}
+
+/* Glass Card（通用卡片样式） */
+.glass-card {
+  background: radial-gradient(
+      circle at 20% 0%,
+      rgba(102, 126, 234, 0.12),
+      transparent 42%
+  ),
+  radial-gradient(
+      circle at 90% 30%,
+      rgba(118, 75, 162, 0.1),
+      transparent 45%
+  ),
+  var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 20px 60px rgba(17, 24, 39, 0.15),
+  0 10px 30px rgba(102, 126, 234, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+}
+
+/* Main Card - 整个主行程卡片增加滚动条 */
+.main-card {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto; /* 4. 主行程右侧滚动条 */
+}
+
+.main-card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-card::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 4px;
+}
+
+.main-card::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--purple-1), var(--purple-2));
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.main-card::-webkit-scrollbar-thumb:hover {
+  opacity: 0.9;
+}
+
+.result-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: radial-gradient(
+      circle at 15% 10%,
+      rgba(102, 126, 234, 0.14),
+      transparent 40%
+  ),
+  radial-gradient(
+      circle at 85% 45%,
+      rgba(118, 75, 162, 0.1),
+      transparent 45%
+  ),
+  rgba(255, 255, 255, 0.52);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.plan-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #0f172a;
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+.plan-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.meta-icon {
+  font-size: 14px;
+}
+
+/* Day Navigation */
+.day-navigation {
+  padding: 16px 28px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  background: rgba(248, 250, 252, 0.5);
+  flex-shrink: 0;
+}
+
+.day-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.day-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.day-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 4px;
+}
+
+.day-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+      to right,
+      rgba(102, 126, 234, 0.4),
+      rgba(118, 75, 162, 0.4)
+  );
+  border-radius: 4px;
+}
+
+.day-tab {
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.day-tab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.day-tab.active {
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 28px rgba(102, 126, 234, 0.25);
+}
+
+.day-number {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.day-date {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.day-tab.active .day-date {
+  opacity: 0.9;
+}
+
+/* Day Content - 不再单独滚动，由 main-card 控制整体滚动 */
+.day-content {
+  flex: 1;
+  padding: 28px;
+}
+
+.day-timeline {
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.timeline-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+}
+
+.marker-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  border: 3px solid white;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  z-index: 2;
+  position: relative;
+}
+
+.marker-line {
+  position: absolute;
+  top: 16px;
+  bottom: -24px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--purple-1), var(--purple-2));
+  opacity: 0.2;
+  z-index: 1;
+}
+
+.timeline-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 20px;
+  padding: 20px;
+  transition: transform 0.25s ease;
+}
+
+.timeline-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 50px rgba(17, 24, 39, 0.18),
+  0 10px 30px rgba(102, 126, 234, 0.15);
+}
+
+.timeline-time {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--purple-1);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.timeline-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attraction-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.attraction-desc {
+  color: #475569;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.attraction-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.cost-badge,
+.duration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.cost-icon,
+.duration-icon {
+  font-size: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn-text {
+  background: transparent;
+  color: var(--purple-1);
+  padding: 8px 12px;
+  border: none;
+  box-shadow: none;
+}
+
+.btn-text:hover {
+  background: rgba(102, 126, 234, 0.08);
+  transform: translateY(-1px);
+}
+
+.btn-detail {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--purple-1);
+  padding: 0;
+}
+
+/* Side Panel */
+.side-panel {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+}
+
+.info-card {
+  padding: 20px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-icon {
+  font-size: 20px;
+}
+
+/* Budget Chart - 调整预算分解模块，使文字更靠上 */
+.budget-chart {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  height: 80px; /* 从 120 减小为 80，避免占位太空 */
+}
+
+.chart-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Budget List - 调整预算列表样式 */
+.budget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.budget-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.budget-category {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.budget-amount {
+  font-weight: 700;
+  color: var(--purple-1);
+  font-size: 15px;
+}
+
+.budget-progress {
+  height: 6px;
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.budget-percentage {
+  font-size: 12px;
+  color: #64748b;
+  align-self: flex-end;
+  font-weight: 600;
+}
+
+/* Overview Stats */
+.overview-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.stat-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.stat-icon {
+  font-size: 24px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+  color: white;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Overview Summary */
+.overview-summary {
+  padding-top: 16px;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.summary-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.summary-tag {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 1200px) {
+  .result-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    height: auto;
+  }
+
+  .side-panel {
+    grid-column: 1;
+    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    gap: 20px;
+  }
+
+  .main-card {
+    max-height: 520px;
+  }
+}
+
 @media (max-width: 768px) {
   .app-layout {
+    display: flex;
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
   }
-  
+
+  /* 修改侧边栏为移动端样式 */
   .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    background: #ffffff;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    margin-top: 0;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* 修复：确保侧边栏在展开状态时正确显示 */
+  .sidebar.collapsed {
+    transform: translateX(-100%); /* 隐藏在左侧 */
+  }
+
+  /* 遮罩层样式 */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: auto;
-    position: relative;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
   }
-  
+
+  /* 当侧边栏展开时，显示出来 */
+  .sidebar:not(.collapsed) {
+    transform: translateX(0); /* 移动到可见位置 */
+  }
+
+  /* 修改header样式 */
+  .header.header-slogan {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0 16px;
+    height: 60px;
+    z-index:999;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* 修改main-content样式 */
   .main-content {
-    margin-left: 0;
+    height: 100vh;
+    margin-top: 0;
+    overflow-y: auto;
+    padding-top: 60px;
+    position: relative;
+    z-index: 1;
   }
-  
-  .grid-cols-2 {
+
+  /* 修改折叠按钮样式 */
+  .edge-toggle {
+    position: fixed;
+    left: 16px;
+    top: 18px;
+    transform: none;
+    z-index: 1100;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+  }
+
+  .user-info {
+    position: static;
+    transform: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .content-area {
+    padding: 16px;
+    padding-top: 0;
+  }
+
+  .result-container {
+    height: auto;
+  }
+
+  .result-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .side-panel {
     grid-template-columns: 1fr;
+  }
+
+  .overview-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .day-content {
+    padding: 20px;
+  }
+
+  .main-card {
+    max-height: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    height: 100vh;
+    padding-top: 50px;
+  }
+
+  .header.header-slogan {
+    height: 50px;
+  }
+
+  .plan-title {
+    font-size: 22px;
+  }
+
+  .overview-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-content {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .timeline-time {
+    font-size: 14px;
+  }
+
+  .day-navigation {
+    padding: 12px 16px;
+  }
+
+  .day-tab {
+    min-width: 80px;
+    padding: 10px 16px;
+  }
+
+  .user-info {
+    position: static;
+    transform: none;
+  }
+
+  .edge-toggle {
+    left: 12px;
+    top: 15px;
   }
 }
 </style>

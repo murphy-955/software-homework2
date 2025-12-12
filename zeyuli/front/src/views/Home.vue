@@ -65,7 +65,9 @@
               <div class="bot-avatar">🧭</div>
               <div>
                 <div class="font-bold text-lg">TravelMate 智能规划助手</div>
-                <div class="text-sm text-gray-600">用一句话描述你的旅行需求，我来生成行程</div>
+                <div class="text-sm text-gray-600">
+                  用一句话描述你的旅行需求，我来生成行程
+                </div>
               </div>
             </div>
             <button class="btn btn-secondary btn-sm" type="button" @click="resetChat">
@@ -91,21 +93,47 @@
               <div v-if="m.role === 'assistant'" class="msg-avatar">🤖</div>
 
               <div class="msg-bubble" :class="m.role">
-                <div class="msg-text">{{ m.content }}</div>
-                <div v-if="m.meta" class="msg-meta">{{ m.meta }}</div>
+                <!-- 动态加载点 -->
+                <div v-if="isTypingMessage(m)" class="typing-dots">
+                  <span></span><span></span><span></span>
+                </div>
+
+                <!-- assistant：Markdown 渲染 -->
+                <div
+                    v-if="m.role === 'assistant'"
+                    class="msg-markdown"
+                    v-html="renderMarkdown(m.content, !isStreamingAssistant(m))"
+                ></div>
+
+                <!-- user：纯文本 -->
+                <div v-else class="msg-text">
+                  {{ m.content }}
+                </div>
+
+                <div v-if="m.meta" class="msg-meta">
+                  {{ m.meta }}
+                </div>
+
+                <!-- 确认行程按钮：只在最后一条助手消息上出现 -->
+                <div v-if="showConfirmFor(m)" class="msg-actions">
+                  <button
+                      class="btn btn-primary btn-sm"
+                      type="button"
+                      @click="confirmItinerary(m)"
+                  >
+                    ✅ 确认该行程
+                  </button>
+                  <button
+                      class="btn btn-secondary btn-sm"
+                      type="button"
+                      @click="copyMarkdown(m.content)"
+                  >
+                    📋 复制 Markdown
+                  </button>
+                </div>
               </div>
 
               <div v-if="m.role === 'user'" class="msg-avatar user">🧑</div>
-            </div>
-
-            <div v-if="loading" class="msg-row assistant">
-              <div class="msg-avatar">🤖</div>
-              <div class="msg-bubble assistant typing">
-                <div class="typing-dots">
-                  <span></span><span></span><span></span>
-                </div>
-                <div class="msg-meta">正在生成行程...</div>
-              </div>
             </div>
           </div>
 
@@ -113,19 +141,39 @@
           <div class="chat-quick">
             <div class="quick-title">快捷模板</div>
             <div class="flex gap-3 flex-wrap">
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('北京三日游 1500元')">
+              <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="selectTemplate('北京三日游 1500元')"
+              >
                 北京三日游 1500元
               </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('杭州两日游 美食之旅')">
+              <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="selectTemplate('杭州两日游 美食之旅')"
+              >
                 杭州两日游 美食之旅
               </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('成都四日游 文化体验')">
+              <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="selectTemplate('成都四日游 文化体验')"
+              >
                 成都四日游 文化体验
               </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('西安三日游 历史文化')">
+              <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="selectTemplate('西安三日游 历史文化')"
+              >
                 西安三日游 历史文化
               </button>
-              <button type="button" class="btn btn-secondary" @click="selectTemplate('厦门两日游 海滨风光')">
+              <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="selectTemplate('厦门两日游 海滨风光')"
+              >
                 厦门两日游 海滨风光
               </button>
             </div>
@@ -162,7 +210,14 @@
                   />
                 </svg>
                 <svg v-else class="loading-icon" viewBox="0 0 24 24" fill="none">
-                  <circle class="loading-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                  <circle
+                      class="loading-circle"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="2"
+                  />
                 </svg>
               </button>
             </div>
@@ -174,9 +229,18 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch, onBeforeUnmount } from "vue";
+import {
+  ref,
+  nextTick,
+  onMounted,
+  watch,
+  onBeforeUnmount,
+  computed,
+} from "vue";
 import { useRouter } from "vue-router";
-import {planByBudget, planItinerary} from "../api/itinerary";
+import { planItinerary, parseItineraryFromMarkdown } from "../api/itinerary";
+import MarkdownIt from "markdown-it";
+import DOMPurify from "dompurify";
 
 const router = useRouter();
 
@@ -187,6 +251,101 @@ const toggleSidebar = () => (sidebarCollapsed.value = !sidebarCollapsed.value);
 const travelRequest = ref("");
 const loading = ref(false);
 const textareaRef = ref(null);
+
+// 聊天消息
+const messages = ref([]);
+const chatBodyRef = ref(null);
+
+// 存储第一个接口返回的原始数据，用于后续确认
+const pendingItineraryData = ref({
+  markdown: "",
+  startCity: "",
+  endCity: "",
+  startDate: "",
+  endDate: "",
+});
+
+// Markdown 渲染器
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+});
+
+const escapeHtml = (unsafe = "") =>
+    unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+// todo
+const renderMarkdown = (text = "", isFinal = true) => {
+  const raw = text || "";
+
+  if (!raw) return "";
+
+  if (isFinal) {
+    // Parse the JSON data from the markdown if applicable
+    try {
+      const data = JSON.parse(raw);
+
+      // Format the data into markdown
+      const formattedMarkdown = data.days.map(day => {
+        let dayMarkdown = `## ${day.label} (${day.date})\n\n`;
+
+        day.items.forEach(item => {
+          dayMarkdown += `### ${item.title} (${item.time})\n`;
+          dayMarkdown += `- **Description:** ${item.description}\n`;
+          dayMarkdown += `- **Attractions:** ${item.attractions}\n`;
+          dayMarkdown += `- **Cost:** ${item.cost}\n`;
+          dayMarkdown += `- **Duration:** ${item.durationHours} hours\n\n`;
+        });
+
+        return dayMarkdown;
+      }).join("\n");
+
+      // Render the formatted markdown and sanitize it
+      const html = md.render(formattedMarkdown);
+      return DOMPurify.sanitize(html);
+
+    } catch (error) {
+      return "Invalid data format.";
+    }
+  }
+
+  // Handling live markdown parsing (e.g., stream-like behavior)
+  const fenceRegex = /```/g;
+  let match;
+  const indices = [];
+  while ((match = fenceRegex.exec(raw)) !== null) {
+    indices.push(match.index);
+  }
+
+  let stablePart = raw;
+  let tail = "";
+
+  if (indices.length % 2 === 1) {
+    const lastFenceIndex = indices[indices.length - 1];
+    stablePart = raw.slice(0, lastFenceIndex);
+    tail = raw.slice(lastFenceIndex);
+  }
+
+  const stableHtml = md.render(stablePart);
+  const tailHtml = tail
+      ? `<span class="md-stream-tail">${escapeHtml(tail).replace(
+          /\n/g,
+          "<br/>"
+      )}</span>`
+      : "";
+
+  return DOMPurify.sanitize(stableHtml + tailHtml);
+};
+
+
+const isStreamingAssistant = (m) =>
+    m.role === "assistant" && m.id.startsWith("temp-");
 
 // 自动调整文本域高度
 const adjustTextareaHeight = () => {
@@ -204,21 +363,29 @@ onMounted(() => {
   }
 });
 onBeforeUnmount(() => {
-  if (textareaRef.value) textareaRef.value.removeEventListener("input", onInput);
+  if (textareaRef.value)
+    textareaRef.value.removeEventListener("input", onInput);
 });
 watch(travelRequest, async () => {
   await nextTick();
   adjustTextareaHeight();
 });
 
-// 聊天消息
-const messages = ref([]);
-const chatBodyRef = ref(null);
+const scrollToBottom = () => {
+  const el = chatBodyRef.value;
+  if (!el) return;
+  el.scrollTop = el.scrollHeight;
+};
 
 const pushMsg = async (role, content, meta = "") => {
-  messages.value.push({ id: `${Date.now()}-${Math.random()}`, role, content, meta });
+  messages.value.push({
+    id: `${Date.now()}-${Math.random()}`,
+    role,
+    content,
+    meta,
+  });
   await nextTick();
-  if (chatBodyRef.value) chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight;
+  scrollToBottom();
 };
 
 // 导航
@@ -235,10 +402,43 @@ const selectTemplate = async (template) => {
 const resetChat = () => {
   messages.value = [];
   travelRequest.value = "";
+  pendingItineraryData.value = {
+    markdown: "",
+    startCity: "",
+    endCity: "",
+    startDate: "",
+    endDate: "",
+  };
   nextTick(adjustTextareaHeight);
 };
 
-// 开始规划
+// 输入中状态
+const isTypingMessage = (message) => {
+  return (
+      message.id.startsWith("temp-") &&
+      message.content === "" &&
+      message.meta === "正在生成行程..."
+  );
+};
+
+/** 流式渲染节流 */
+let rafPending = false;
+let latestContent = "";
+
+const scheduleUiUpdate = (tempMessageId) => {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    const idx = messages.value.findIndex((m) => m.id === tempMessageId);
+    if (idx !== -1) {
+      messages.value[idx].content = latestContent;
+    }
+    scrollToBottom();
+  });
+};
+
+// 开始规划（流式）
 const startPlanning = async () => {
   const text = travelRequest.value.trim();
   if (!text || loading.value) return;
@@ -248,29 +448,225 @@ const startPlanning = async () => {
   travelRequest.value = "";
   adjustTextareaHeight();
 
+  let tempMessageId;
+
   try {
+    // 创建流式临时消息
+    tempMessageId = `temp-${Date.now()}`;
+    messages.value.push({
+      id: tempMessageId,
+      role: "assistant",
+      content: "",
+      meta: "正在生成行程...",
+    });
+
+    await nextTick();
+    scrollToBottom();
+
+    // 这里可以解析用户输入中的城市和日期信息
+    // 为了简化，我们使用示例数据，实际项目中应该解析用户输入
+    const parsedInfo = parseUserInput(text);
+
     const params = {
-      startCity: "北京",
-      endCity: "上海",
-      startDate:"2025-10-25",
-      endDate: "2025-10-30",
-      token: localStorage.getItem('token') || '',
-      userInput: text
+      startCity: parsedInfo.startCity,
+      endCity: parsedInfo.endCity,
+      startDate: parsedInfo.startDate,
+      endDate: parsedInfo.endDate,
+      token: localStorage.getItem("token") || "",
+      userInput: text,
     };
-    const result = await planItinerary(params, {});
-    localStorage.setItem("currentItinerary", JSON.stringify(result));
 
-    await pushMsg("assistant", "行程规划完成！已为你生成了详细行程，点击下方查看完整行程单。");
-    await pushMsg("assistant", "你可以：\n1. 查看详细行程\n2. 调整预算\n3. 修改景点安排", "系统提示");
+    latestContent = "";
 
-    setTimeout(() => router.push("/result"), 1500);
+    // 使用流式响应处理
+    await planItinerary(params, (chunk) => {
+      const cleaned = String(chunk)
+          .replace(/^data:\s?/gm, "")
+          .replace(/\n\n$/g, "\n");
+      latestContent += cleaned;
+      scheduleUiUpdate(tempMessageId);
+    });
+
+    // 流式结束后，把临时消息转成正式 assistant 消息
+    const tempIdx = messages.value.findIndex((m) => m.id === tempMessageId);
+    if (tempIdx !== -1) {
+      messages.value[tempIdx] = {
+        id: `${Date.now()}-${Math.random()}`,
+        role: "assistant",
+        content: latestContent,
+        meta: "",
+      };
+    }
+
+    // 保存第一个接口返回的数据，用于后续确认
+    pendingItineraryData.value = {
+      markdown: latestContent,
+      startCity: parsedInfo.startCity,
+      endCity: parsedInfo.endCity,
+      startDate: parsedInfo.startDate,
+      endDate: parsedInfo.endDate,
+    };
+
+    await pushMsg(
+        "assistant",
+        "行程规划完成！请检查内容，若满意可以点击\"确认该行程\"，我会为你生成结构化行程数据。",
+        "系统提示"
+  );
   } catch (error) {
     console.error("规划行程失败:", error);
-    await pushMsg("assistant", "抱歉，规划过程中出现了问题。请检查网络连接或稍后重试。", "系统提示");
+
+    if (tempMessageId) {
+      const tempIdx = messages.value.findIndex((m) => m.id === tempMessageId);
+      if (tempIdx !== -1) {
+        messages.value.splice(tempIdx, 1);
+      }
+    }
+
+    await pushMsg(
+        "assistant",
+        "抱歉，规划过程中出现了问题。请检查网络连接或稍后重试。",
+        "系统提示"
+    );
   } finally {
     loading.value = false;
   }
 };
+
+// 解析用户输入，提取城市和日期信息
+const parseUserInput = (input) => {
+  // 这里实现简单的解析逻辑
+  // 实际项目中可能需要更复杂的自然语言处理
+
+  // 示例：匹配"X日游"或"X天"
+  const dayMatch = input.match(/(\d+)(?:日|天)/);
+  const days = dayMatch ? parseInt(dayMatch[1]) : 3;
+
+  // 示例：匹配城市（简化版）
+  const cities = ["北京", "上海", "广州", "深圳", "杭州", "成都", "西安", "厦门"];
+  const foundCities = cities.filter(city => input.includes(city));
+
+  // 设置默认值
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + days);
+
+  return {
+    startCity: foundCities[0] || "北京",
+    endCity: foundCities[1] || foundCities[0] || "上海",
+    startDate: formatDate(today),
+    endDate: formatDate(endDate),
+  };
+};
+
+// 格式化日期为 YYYY-MM-DD
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/** 只对"最后一条正式 assistant 消息"展示确认按钮 */
+const lastAssistantIndex = computed(() => {
+  for (let i = messages.value.length - 1; i >= 0; i--) {
+    const m = messages.value[i];
+    if (m.role === "assistant" && !m.id.startsWith("temp-")) {
+      return i;
+    }
+  }
+  return -1;
+});
+
+const showConfirmFor = (m) => {
+  const idx = messages.value.findIndex((x) => x.id === m.id);
+  return (
+      !loading.value &&
+      idx === lastAssistantIndex.value &&
+      m.role === "assistant" &&
+      (m.content || "").trim().length > 0 &&
+      pendingItineraryData.value.markdown // 确保有数据可以确认
+  );
+};
+
+// 确认行程：调用第二个接口格式化数据并缓存
+const confirmItinerary = async (m) => {
+  try {
+    loading.value = true;
+
+    // 调用第二个接口格式化数据
+    const formattedData = await parseItineraryFromMarkdown({
+      markdown: pendingItineraryData.value.markdown,
+      startCity: pendingItineraryData.value.startCity,
+      endCity: pendingItineraryData.value.endCity,
+      startDate: pendingItineraryData.value.startDate,
+      endDate: pendingItineraryData.value.endDate,
+      token: localStorage.getItem("token") || ""
+    });
+
+    // 缓存到浏览器（localStorage 或 sessionStorage）
+    // 使用 localStorage 以便其他页面可以访问
+    localStorage.setItem("confirmedItinerary", JSON.stringify({
+      ...formattedData,
+      timestamp: new Date().toISOString(),
+    }));
+
+    // 添加事件通知其他组件/页面
+    window.dispatchEvent(new CustomEvent('itineraryConfirmed', {
+      detail: formattedData
+    }));
+
+    await pushMsg(
+        "assistant",
+        "已确认 ✅ 行程已解析为结构化数据，你可以在\"我的行程 / 预算管理 / 地图视图\"中查看。",
+        "系统提示"
+  );
+
+    // 清空待处理数据
+    pendingItineraryData.value = {
+      markdown: "",
+      startCity: "",
+      endCity: "",
+      startDate: "",
+      endDate: "",
+    };
+
+  } catch (error) {
+    console.error("确认行程失败：", error);
+    await pushMsg(
+        "assistant",
+        "确认行程时出错，请稍后重试。",
+        "系统提示"
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 复制 Markdown，方便用户粘贴
+const copyMarkdown = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text || "");
+    await pushMsg("assistant", "已复制到剪贴板 📋", "系统提示");
+  } catch {
+    await pushMsg(
+        "assistant",
+        "复制失败，请手动选择文本复制。",
+        "系统提示"
+    );
+  }
+};
+
+// 导出一些方法供其他组件使用
+defineExpose({
+  getConfirmedItinerary: () => {
+    const stored = localStorage.getItem("confirmedItinerary");
+    return stored ? JSON.parse(stored) : null;
+  },
+  clearItineraryCache: () => {
+    localStorage.removeItem("confirmedItinerary");
+    sessionStorage.removeItem("currentItinerary");
+  },
+});
 </script>
 
 <style scoped>
@@ -293,7 +689,7 @@ const startPlanning = async () => {
   column-gap: 0;
 
   background:
-      radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.10), transparent 45%),
+      radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.1), transparent 45%),
       radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
       linear-gradient(135deg, var(--purple-1) 0%, var(--purple-2) 100%);
   position: relative;
@@ -404,7 +800,7 @@ const startPlanning = async () => {
   font-size: 16px;
 }
 
-/* ====== Main：紫色基调背景（你要的效果） ====== */
+/* ====== Main：紫色基调背景 ====== */
 .main-content {
   grid-column: 2;
   min-width: 0;
@@ -413,7 +809,6 @@ const startPlanning = async () => {
   flex-direction: column;
   position: relative;
 
-  /* ✅ 紫色“氛围底”：统一左侧视觉体系 */
   background:
       radial-gradient(circle at 18% 10%, rgba(102, 126, 234, 0.28), transparent 46%),
       radial-gradient(circle at 82% 30%, rgba(118, 75, 162, 0.22), transparent 48%),
@@ -421,7 +816,7 @@ const startPlanning = async () => {
       linear-gradient(135deg, rgba(102, 126, 234, 0.22), rgba(118, 75, 162, 0.18));
 }
 
-/* ✅ 分界线处“擦干净”1px，避免抗锯齿/阴影导致的色带 */
+/* 分界线 */
 .main-content::before {
   content: "";
   position: absolute;
@@ -433,7 +828,7 @@ const startPlanning = async () => {
   pointer-events: none;
 }
 
-/* ====== 分界线按钮（永远贴边） ====== */
+/* ====== 分界线按钮 ====== */
 .edge-toggle {
   position: absolute;
   left: 30px;
@@ -501,14 +896,14 @@ const startPlanning = async () => {
   gap: 12px;
   padding: 10px 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.60);
+  background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 .slogan-text {
   font-size: 18px;
   font-weight: 900;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.1em;
   line-height: 1;
   background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
   -webkit-background-clip: text;
@@ -535,7 +930,7 @@ const startPlanning = async () => {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  background: transparent; /* ✅ 让紫色氛围底透出来 */
+  background: transparent;
 }
 
 /* ====== Chat Card：紫系玻璃态 ====== */
@@ -569,7 +964,7 @@ const startPlanning = async () => {
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   background:
       radial-gradient(circle at 15% 10%, rgba(102, 126, 234, 0.14), transparent 40%),
-      radial-gradient(circle at 85% 45%, rgba(118, 75, 162, 0.10), transparent 45%),
+      radial-gradient(circle at 85% 45%, rgba(118, 75, 162, 0.1), transparent 45%),
       rgba(255, 255, 255, 0.52);
 }
 .chat-title {
@@ -597,11 +992,10 @@ const startPlanning = async () => {
   padding: 20px;
   overflow-y: auto;
 
-  /* ✅ 紫系白底（更统一） */
   background:
-      radial-gradient(circle at 18% 10%, rgba(102, 126, 234, 0.10), transparent 40%),
+      radial-gradient(circle at 18% 10%, rgba(102, 126, 234, 0.1), transparent 40%),
       radial-gradient(circle at 82% 45%, rgba(118, 75, 162, 0.08), transparent 44%),
-      rgba(255, 255, 255, 0.70);
+      rgba(255, 255, 255, 0.7);
 }
 
 .chat-body::-webkit-scrollbar {
@@ -612,7 +1006,11 @@ const startPlanning = async () => {
   border-radius: 6px;
 }
 .chat-body::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95));
+  background: linear-gradient(
+      to bottom,
+      rgba(102, 126, 234, 0.95),
+      rgba(118, 75, 162, 0.95)
+  );
   border-radius: 6px;
 }
 
@@ -687,7 +1085,11 @@ const startPlanning = async () => {
   border-top-left-radius: 10px;
 }
 .msg-bubble.user {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 1), rgba(118, 75, 162, 1));
+  background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 1),
+      rgba(118, 75, 162, 1)
+  );
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 14px 34px rgba(102, 126, 234, 0.18);
@@ -704,6 +1106,66 @@ const startPlanning = async () => {
   border-top-color: rgba(255, 255, 255, 0.18);
 }
 
+/* Markdown 展示 */
+.msg-markdown {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.msg-markdown :deep(p) {
+  margin: 8px 0;
+}
+.msg-markdown :deep(h1),
+.msg-markdown :deep(h2),
+.msg-markdown :deep(h3) {
+  margin: 12px 0 8px;
+  font-weight: 900;
+  color: #0f172a;
+}
+.msg-markdown :deep(h1) {
+  font-size: 20px;
+}
+.msg-markdown :deep(h2) {
+  font-size: 17px;
+}
+.msg-markdown :deep(h3) {
+  font-size: 15px;
+}
+.msg-markdown :deep(ul),
+.msg-markdown :deep(ol) {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+.msg-markdown :deep(li) {
+  margin: 4px 0;
+}
+.msg-markdown :deep(code) {
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.18);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+.msg-markdown :deep(pre) {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #fff;
+  overflow: auto;
+  margin: 10px 0;
+}
+.msg-markdown :deep(blockquote) {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border-left: 4px solid rgba(102, 126, 234, 0.8);
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 12px;
+}
+.md-stream-tail {
+  opacity: 0.75;
+}
+
+/* 打字中动画 */
 .typing-dots {
   display: flex;
   gap: 6px;
@@ -735,6 +1197,34 @@ const startPlanning = async () => {
   }
 }
 
+/* 确认行程按钮区域 */
+.msg-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(15, 23, 42, 0.12);
+}
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 6px 12px;
+  box-shadow: 0 10px 24px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(102, 126, 234, 0.6);
+}
+.btn-sm {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 快捷模板 & 输入区 */
 .chat-quick {
   padding: 18px 24px;
   border-top: 1px solid rgba(15, 23, 42, 0.06);
@@ -769,7 +1259,12 @@ const startPlanning = async () => {
   left: 24px;
   right: 24px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.12), transparent);
+  background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(15, 23, 42, 0.12),
+      transparent
+  );
 }
 .chat-input-new::before {
   top: 0;
@@ -786,13 +1281,15 @@ const startPlanning = async () => {
   border-radius: 18px;
   background: rgba(248, 250, 252, 0.76);
   border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 10px 30px rgba(15, 23, 42, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+  0 10px 30px rgba(15, 23, 42, 0.1);
   transition: all 0.25s ease;
 }
 .input-container:focus-within {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(102, 126, 234, 0.45);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 16px 45px rgba(102, 126, 234, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7),
+  0 16px 45px rgba(102, 126, 234, 0.16);
   transform: translateY(-1px);
 }
 
@@ -823,19 +1320,25 @@ const startPlanning = async () => {
   height: 40px;
   min-width: 44px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 1), rgba(118, 75, 162, 1));
+  background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 1),
+      rgba(118, 75, 162, 1)
+  );
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 24px rgba(102, 126, 234, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 24px rgba(102, 126, 234, 0.24),
+  inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .send-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 34px rgba(102, 126, 234, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 34px rgba(102, 126, 234, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .send-button:disabled {
   opacity: 0.55;

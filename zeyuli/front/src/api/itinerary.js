@@ -27,7 +27,7 @@ export const planItinerary = (params, onChunk) => {
         }
 
         // 使用原生fetch API实现流式接收
-        // todo 注意要使用baseUrl
+        // TODO 注意要使用 baseUrl
         fetch(`http://localhost:8080/deekseek/planItinerary?${new URLSearchParams(params)}`, {
             method: 'GET',
             headers
@@ -37,21 +37,21 @@ export const planItinerary = (params, onChunk) => {
                     throw new Error(`HTTP error! status: ${response.status}`)
                 }
 
-                // 获取ReadableStream
+                // 获取 ReadableStream
                 const reader = response.body.getReader()
                 const decoder = new TextDecoder('utf-8')
                 let result = ''
 
                 // 递归读取流数据
                 const readStream = () => {
-                    return reader.read().then(({done, value}) => {
+                    return reader.read().then(({ done, value }) => {
                         if (done) {
                             resolve(result)
                             return
                         }
 
                         // 解码并处理数据
-                        const chunk = decoder.decode(value, {stream: true})
+                        const chunk = decoder.decode(value, { stream: true })
                         result += chunk
 
                         // 实时回调处理数据
@@ -70,6 +70,27 @@ export const planItinerary = (params, onChunk) => {
                 reject(error)
             })
     })
+}
+
+/**
+ * ✅ 新增：确认行程时调用的接口
+ * 前端把最终确认的 Markdown + 出发/目的地/日期 等发给后端，
+ * 后端用 AI 解析成 { markdown, itinerary } 并返回。
+ *
+ * 使用方式（在组件里）：
+ * const confirmed = await parseItineraryFromMarkdown({...})
+ * // confirmed 预期为：{ markdown: string, itinerary: {...} }
+ */
+export const parseItineraryFromMarkdown = (data) => {
+    return request({
+        // ⚠️ 这里的地址要和你后端 Controller 对应，按后端实际改
+        // 比如你后端写的是 @PostMapping("/deekseek/confirmItinerary")
+        // 那就改成 '/deekseek/confirmItinerary'
+        url: 'deekseek/formatUserInput',
+        method: 'POST',
+        timeout: 100000,
+        data
+    }).then(res => res.data)
 }
 
 // 根据条件调整行程
