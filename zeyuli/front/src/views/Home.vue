@@ -310,7 +310,6 @@ const parseAndFormatItinerary = (jsonData) => {
 
     return data;
   } catch (error) {
-    console.error('解析行程数据失败:', error, '原始数据:', jsonData);
     // 返回一个安全的空结构
     return {
       days: [],
@@ -378,6 +377,7 @@ onMounted(() => {
     adjustTextareaHeight();
   }
 });
+
 onBeforeUnmount(() => {
   if (textareaRef.value)
     textareaRef.value.removeEventListener("input", onInput);
@@ -453,6 +453,29 @@ const scheduleUiUpdate = (tempMessageId) => {
     scrollToBottom();
   });
 };
+const saveItinerary = async (itineraryData, token) => {
+  try {
+    const response = await fetch(`http://localhost:8080/user/cacheTravelInfo?token=${token}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        itinerary: itineraryData,
+        timestamp: new Date().toISOString()
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`保存失败: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('保存行程失败:', error);
+    throw error;
+  }
+};
 
 // 修改后的startPlanning函数
 const startPlanning = async () => {
@@ -524,7 +547,7 @@ const startPlanning = async () => {
         } catch (error) {
           parseAttempts++;
           // JSON还不完整，继续累积
-          console.log('接收JSON数据中...', chunk.length, 'bytes');
+          //console.log('接收JSON数据中...', chunk.length, 'bytes');
         }
       }
     });
@@ -534,7 +557,7 @@ const startPlanning = async () => {
     try {
       finalData = parseAndFormatItinerary(rawJsonData);
     } catch (error) {
-      console.error('最终JSON解析失败:', error);
+      //console.error('最终JSON解析失败:', error);
       throw new Error('行程数据格式错误');
     }
 
@@ -560,6 +583,25 @@ const startPlanning = async () => {
       startDate: parsedInfo.startDate,
       endDate: parsedInfo.endDate,
     };
+
+    // 可选：自动保存为草稿
+    try {
+      const userToken = localStorage.getItem("token");
+      if (userToken && finalData) {
+        // 标记为草稿
+        const draftData = {
+          ...finalData,
+          status: 'draft',
+          isDraft: true
+        };
+
+        await saveItinerary(draftData, userToken);
+        //console.log('行程草稿已自动保存');
+      }
+    } catch (draftError) {
+      console.warn('自动保存草稿失败:', draftError);
+      // 不中断主流程
+    }
 
     // 添加确认提示
     await pushMsg(
