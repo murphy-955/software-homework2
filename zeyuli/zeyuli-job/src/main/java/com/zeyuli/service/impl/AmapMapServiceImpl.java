@@ -91,7 +91,7 @@ public class AmapMapServiceImpl implements MapService {
                 ObjectMapper mapper = new ObjectMapper();
                 GaodeAddress gaodeAddress = mapper.readValue(result, GaodeAddress.class);
                 // 获取location
-                Geocodes geocodes = gaodeAddress.getGeocodes().getFirst();
+                Geocodes geocodes = gaodeAddress.getGeocodes().get(0);
                 // 解析location
                 return geocodes.analyzeLatAndLon();
             }
@@ -110,7 +110,7 @@ public class AmapMapServiceImpl implements MapService {
                 ObjectMapper mapper = new ObjectMapper();
                 GaodeAddress gaodeAddress = mapper.readValue(result, GaodeAddress.class);
                 // 获取location
-                Geocodes geocodes = gaodeAddress.getGeocodes().getFirst();
+                Geocodes geocodes = gaodeAddress.getGeocodes().get(0);
                 // 解析location
                 return JsonUtil.text(geocodes.getAdcode());
             }
@@ -252,7 +252,7 @@ public class AmapMapServiceImpl implements MapService {
             GetRouteData data = jsonResponse.getData();
 
             if (type.equals("driving")) {
-                Paths paths = jsonResponse.getRouteVo().getPaths().getFirst();
+                Paths paths = jsonResponse.getRouteVo().getPaths().get(0);
                 route.setMode(mode);
                 route.setDistance(paths.getDistance());
                 route.setDuration(paths.getDuration());
@@ -290,7 +290,7 @@ public class AmapMapServiceImpl implements MapService {
                 log.info("【驾车】路径规划成功，距离: {}米，时长: {}秒", route.getDistance(), route.getDuration());
 
             } else {
-                Paths firstPath = data.getPaths().getFirst();
+                Paths firstPath = data.getPaths().get(0);
 
                 // 4. 填充Route对象
                 route.setMode(mode);
@@ -525,7 +525,7 @@ public class AmapMapServiceImpl implements MapService {
 
             // 返回完整的响应（可以是JSON字符串，也可以处理后返回）
             List<LivesVo> lives = jsonResponse.getLives();
-            return lives.getFirst().getWeather();
+            return lives.get(0).getWeather();
 
         } catch (Exception e) {
             log.error("获取天气信息失败: {}", e.getMessage(), e);
@@ -700,7 +700,7 @@ public class AmapMapServiceImpl implements MapService {
 
             // 获取POI信息
             if (jsonResponse.getPois() != null && !jsonResponse.getPois().isEmpty()) {
-                PoisInDetailsVo poi = jsonResponse.getPois().getFirst();
+                PoisInDetailsVo poi = jsonResponse.getPois().get(0);
 
                 // 设置基本信息
                 details.put("id", poi.getId());
@@ -725,7 +725,7 @@ public class AmapMapServiceImpl implements MapService {
                         details.put("cost", String.join(",", costList));
                         // 尝试从消费信息中提取价格数字
                         try {
-                            String costStr = costList.getFirst();
+                            String costStr = costList.get(0);
                             String priceNum = costStr.replaceAll("[^0-9]", "");
                             if (!priceNum.isEmpty()) {
                                 details.put("price", Integer.parseInt(priceNum));
@@ -744,7 +744,7 @@ public class AmapMapServiceImpl implements MapService {
                     List<String> ratingList = poi.getBiz_ext().getRating();
                     if (ratingList != null && !ratingList.isEmpty()) {
                         try {
-                            String ratingStr = ratingList.getFirst();
+                            String ratingStr = ratingList.get(0);
                             // 高德评分通常是数字字符串
                             details.put("rating", Double.parseDouble(ratingStr));
                         } catch (NumberFormatException e) {
