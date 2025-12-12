@@ -3778,7 +3778,12 @@ POST /personality-test/calculate-result
 
 ```json
 {
-  "key": "string"
+  "token": "",
+  "Q1": "Q1C",
+  "Q2": "Q2D",
+  "Q3": "Q3D",
+  "Q4": "Q4B",
+  "Q5": "Q5C"
 }
 ```
 

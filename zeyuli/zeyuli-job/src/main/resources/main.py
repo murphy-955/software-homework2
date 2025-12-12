@@ -15,6 +15,21 @@ from openai import OpenAI
 import sys
 import io
 
+# main.py 开头添加
+import sys
+import codecs
+
+# 设置标准流的编码为UTF-8
+if sys.version_info[0] < 3:
+    # Python 2.x
+    sys.stdin = codecs.getreader('utf-8')(sys.stdin)
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
+else:
+    # Python 3.x
+    sys.stdin.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # 设置无缓冲输出
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', write_through=True)
 
@@ -85,7 +100,6 @@ def build_prompt(data: dict) -> str:
     else:
         # 有用户输入版本
         return f"""
-你是资深旅行规划师。用户已对行程提出修改要求，请基于要求调整并重新输出完整 JSON。
 输出格式与字段要求与刚才完全相同，description 仍支持 Markdown。
 
 用户修改要求：
@@ -99,50 +113,30 @@ def build_prompt(data: dict) -> str:
 
 
 def stream_json_travel(data: dict):
-    """调用 DeepSeek 并逐 chunk yield 文本"""
-    prompt = build_prompt(data)  # 明确构建 prompt
-    schema = {
-        "type": "object",
-        "properties": {
-            "days": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "dayIndex": {"type": "string"},
-                        "date": {"type": "string"},
-                        "label": {"type": "string"},
-                        "items": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "time": {"type": "string"},
-                                    "title": {"type": "string"},
-                                    "description": {"type": "string"},
-                                    "attractions": {"type": "string"},
-                                    "cost": {"type": "string"},
-                                    "durationHours": {"type": "string"},
-                                },
-                                "required": ["time", "title", "description", "attractions", "cost", "durationHours"]
-                            }
-                        }
-                    },
-                    "required": ["dayIndex", "date", "label", "items"]
-                }
-            }
-        },
-        "required": ["days"]
-    }
+    """流式返回【固定格式】旅行计划 JSON（兼容 DeepSeek 当前接口）"""
+    prompt = build_prompt(data)          # 你原来的 prompt 逻辑照旧
 
-    # 调用模型接口时使用 prompt 变量
+    # 1. 把目标 schema 纯文本写死到 system 里
+    system_text = (
+        "你是严格的 JSON 生成器，必须全程保持沉默，只输出合法 JSON，"
+        "禁止任何注释、解释、markdown 代码块。输出必须严格符合下面 Schema：\n"
+        '{"days":[{"dayIndex":number,"date":"string","label":"string",'
+        '"items":[{"time":"string","title":"string","description":"string",'
+        '"attractions":"string","cost":"string","durationHours":number}]}]}\n'
+        "字段名、类型、层级均不得变动；没有的内容用空字符串或 0 填充。"
+    )
+
+    # 2. 普通 json_object 模式 + 温度 0
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
-            {"role": "user", "content": prompt}  # 使用已定义的 prompt
+            {"role": "system", "content": system_text},
+            {"role": "user",   "content": prompt}
         ],
-        response_format={"type": "json_object"},  # 移除了无效的 json_schema 参数
-        stream=True
+        response_format={"type": "json_object"},  # DeepSeek 仅支持这一种
+        stream=True,
+        temperature=0.0,
+        # 如 DeepSeek 后续开放 seed，可再加 seed=42 保证完全复现
     )
 
     for chunk in response:
