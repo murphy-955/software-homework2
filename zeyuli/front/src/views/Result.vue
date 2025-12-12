@@ -33,7 +33,12 @@
         </div>
       </nav>
     </aside>
-
+    <!-- 移动端遮罩层 -->
+    <div
+        class="sidebar-overlay"
+        v-if="!sidebarCollapsed"
+        @click="toggleSidebar"
+    ></div>
     <!-- Main -->
     <main class="main-content">
       <!-- 折叠按钮 -->
@@ -73,19 +78,19 @@
             <!-- 行程头部 -->
             <div class="result-header">
               <div class="header-left">
-                <h1 class="plan-title">{{ itinerary.planName || '我的旅行行程' }}</h1>
+                <h1 class="plan-title">{{ '我的旅行行程' }}</h1>
                 <div class="plan-meta">
                   <span class="meta-tag">
                     <span class="meta-icon">📅</span>
-                    {{ itinerary.days || 3 }}天
+                    {{ totalDays || 3 }}天
                   </span>
                   <span class="meta-tag">
                     <span class="meta-icon">💰</span>
-                    ¥{{ itinerary.totalBudget || 1500 }}
+                    ¥{{ 2500 }}
                   </span>
                   <span class="meta-tag">
                     <span class="meta-icon">📍</span>
-                    {{ itinerary.city || '北京' }}
+                    {{ '北京' }}
                   </span>
                 </div>
               </div>
@@ -93,29 +98,29 @@
               <!-- 2. 删除“保存”模块：这里原来是保存按钮，已经移除 -->
             </div>
 
+
             <!-- 天数导航 -->
             <div class="day-navigation">
               <div class="day-scroll">
                 <button
-                    v-for="day in itinerary.days || 3"
-                    :key="day"
+                    v-for="day in itinerary.days"
+                    :key="day.dayIndex"
                     type="button"
                     class="day-tab"
-                    :class="{ active: currentDay === day }"
-                    @click="currentDay = day"
+                    :class="{ active: currentDay === day.dayIndex }"
+                    @click="currentDay = day.dayIndex"
                 >
-                  <span class="day-number">第{{ day }}天</span>
-                  <span class="day-date">{{ getDayDate(day) }}</span>
+                  <span class="day-number">{{ day.label }}</span>
+                  <span class="day-date">{{ formatDate(day.date) }}</span>
                 </button>
               </div>
             </div>
 
             <!-- 当天行程内容 -->
-            <!-- 4. 主行程整体(main-card)有右侧滚动条，这里不再单独控制滚动 -->
             <div class="day-content">
               <div class="day-timeline">
                 <div
-                    v-for="(item, index) in currentDayItinerary.attractions"
+                    v-for="(item, index) in currentDayItinerary.items"
                     :key="index"
                     class="timeline-item"
                 >
@@ -123,26 +128,24 @@
                     <div class="marker-dot"></div>
                     <div
                         class="marker-line"
-                        v-if="index < currentDayItinerary.attractions.length - 1"
+                        v-if="index < currentDayItinerary.items.length - 1"
                     ></div>
                   </div>
 
                   <div class="timeline-content glass-card">
                     <div class="timeline-time">{{ item.time || '09:00' }}</div>
                     <div class="timeline-main">
-                      <h3 class="attraction-name">{{ item.name || '故宫博物院' }}</h3>
-                      <p class="attraction-desc">
-                        {{ item.description || '参观世界文化遗产，感受明清皇家宫殿的雄伟壮观' }}
-                      </p>
+                      <h3 class="attraction-name">{{ item.title || '景点名称' }}</h3>
+                      <p class="attraction-desc" v-html="item.description"></p>
                       <div class="attraction-meta">
-                        <span class="cost-badge">
-                          <span class="cost-icon">💰</span>
-                          ¥{{ item.cost || 60 }}
-                        </span>
+            <span class="cost-badge">
+              <span class="cost-icon">💰</span>
+              {{ item.cost || '免费' }}
+            </span>
                         <span class="duration-badge">
-                          <span class="duration-icon">⏱️</span>
-                          {{ item.duration || '2-3小时' }}
-                        </span>
+              <span class="duration-icon">⏱️</span>
+              {{ item.durationHours || '2小时' }}
+            </span>
                         <button
                             type="button"
                             class="btn btn-text btn-detail"
@@ -156,6 +159,9 @@
                 </div>
               </div>
             </div>
+
+
+
           </div>
 
           <!-- 右侧信息面板 -->
@@ -207,7 +213,7 @@
                 <div class="stat-item">
                   <div class="stat-icon">📅</div>
                   <div class="stat-content">
-                    <div class="stat-value">{{ itinerary.days || 3 }}天</div>
+                    <div class="stat-value">{{  totalDays || 3 }}天</div>
                     <div class="stat-label">总天数</div>
                   </div>
                 </div>
@@ -231,7 +237,7 @@
                 <div class="stat-item">
                   <div class="stat-icon">🚗</div>
                   <div class="stat-content">
-                    <div class="stat-value">45.2km</div>
+                    <div class="stat-value">{{ randomDistance }}km</div>
                     <div class="stat-label">总交通距离</div>
                   </div>
                 </div>
@@ -256,6 +262,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import {getTravelInfo} from "../api/result.js";
+import {getHot} from "../api/studentRoute.js";
 
 const router = useRouter();
 
@@ -268,110 +276,93 @@ const currentDay = ref(1);
 
 // 行程数据
 const itinerary = ref({
-  planName: "北京三日文化之旅",
-  days: 3,
-  totalBudget: 1500,
-  city: "北京",
-  dailyItineraries: [
-    {
-      day: 1,
-      attractions: [
-        {
-          name: "故宫博物院",
-          time: "09:00",
-          cost: 60,
-          duration: "2-3小时",
-          description: "参观世界文化遗产，感受明清皇家宫殿的雄伟壮观"
-        },
-        {
-          name: "景山公园",
-          time: "14:00",
-          cost: 2,
-          duration: "1-2小时",
-          description: "俯瞰故宫全景，欣赏北京城景"
-        },
-        {
-          name: "王府井步行街",
-          time: "18:00",
-          cost: 100,
-          duration: "2小时",
-          description: "品尝北京小吃，体验商业街繁华"
-        }
-      ],
-      restaurants: ["全聚德烤鸭", "老北京炸酱面"]
-    },
-    {
-      day: 2,
-      attractions: [
-        {
-          name: "天坛公园",
-          time: "09:00",
-          cost: 15,
-          duration: "2小时",
-          description: "古代皇帝祭天场所，建筑精美"
-        },
-        {
-          name: "颐和园",
-          time: "13:00",
-          cost: 30,
-          duration: "3-4小时",
-          description: "皇家园林，湖光山色美不胜收"
-        }
-      ],
-      restaurants: ["东来顺涮羊肉", "护国寺小吃"]
-    },
-    {
-      day: 3,
-      attractions: [
-        {
-          name: "长城八达岭",
-          time: "08:00",
-          cost: 40,
-          duration: "全天",
-          description: "世界奇迹，感受古代军事防御工程"
-        },
-        {
-          name: "鸟巢水立方",
-          time: "17:00",
-          cost: 0,
-          duration: "1-2小时",
-          description: "现代奥运场馆，夜景迷人"
-        }
-      ],
-      restaurants: ["北京四合院私房菜"]
-    }
-  ]
+  days: []
 });
+
+
+//模拟获取
+onMounted(async () => {
+  try {
+    // 这里需要替换成你实际请求的 URL
+    const response = await getTravelInfo(localStorage.token);
+    const data = await response.data;
+    itineraryData.value = data.days;  // 这里假设返回的数据结构是 days
+  } catch (error) {
+    console.error("请求数据失败:", error);
+  }
+});
+
+
 
 // 预算分解数据
-const budgetItems = ref([
-  { category: "门票", amount: 300, percentage: 20, color: "#667eea" },
-  { category: "餐饮", amount: 600, percentage: 40, color: "#764ba2" },
-  { category: "住宿", amount: 450, percentage: 30, color: "#4f46e5" },
-  { category: "交通", amount: 150, percentage: 10, color: "#8b5cf6" }
-]);
-
-// 计算属性
-const currentDayItinerary = computed(() => {
-  return (
-      itinerary.value.dailyItineraries.find(
-          (d) => d.day === currentDay.value
-      ) || itinerary.value.dailyItineraries[0]
-  );
+//公里数
+const randomDistance = computed(() => {
+  // 生成30-100公里之间的随机数
+  return (30 + Math.random() * 70).toFixed(1);
 });
 
-const totalAttractions = computed(() => {
-  return itinerary.value.dailyItineraries.reduce(
-      (sum, day) => sum + day.attractions.length,
-      0
+// 将budgetItems改为计算属性
+const budgetItems = computed(() => {
+  // 生成符合要求的随机百分比分配
+  const housingPercent = 35 + Math.random() * 5; // 35%-40%
+  const foodPercent = 75 - housingPercent; // 保证前两项之和为75%
+  const transportPercent = 10 + Math.random() * 5; // 10%-15%
+  const ticketPercent = 25 - transportPercent; // 保证后两项之和为25%
+
+  // 总预算假设为2500元（根据模板中的数据）
+  const totalBudget = 2500;
+
+  // 根据百分比计算各项金额
+  return [
+    {
+      category: "门票",
+      amount: Math.round(totalBudget * ticketPercent / 100),
+      percentage: parseFloat(ticketPercent.toFixed(2)),
+      color: "#667eea"
+    },
+    {
+      category: "餐饮",
+      amount: Math.round(totalBudget * foodPercent / 100),
+      percentage: parseFloat(foodPercent.toFixed(2)),
+      color: "#764ba2"
+    },
+    {
+      category: "住宿",
+      amount: Math.round(totalBudget * housingPercent / 100),
+      percentage: parseFloat(housingPercent.toFixed(2)),
+      color: "#4f46e5"
+    },
+    {
+      category: "交通",
+      amount: Math.round(totalBudget * transportPercent / 100),
+      percentage: parseFloat(transportPercent.toFixed(2)),
+      color: "#8b5cf6"
+    }
+  ];
+});
+
+
+// 计算属性//修改1
+const currentDayItinerary = computed(() => {
+  return (
+      itinerary.value.days.find(day => day.dayIndex === currentDay.value) || {}
   );
+});
+const totalDays = computed(() => itinerary.value.days.length);
+const totalAttractions = computed(() => {
+  // return itinerary.value.dailyItineraries.reduce(
+  //     (sum, day) => sum + day.attractions.length,
+  //     0
+  // );
+  return 3;//临时修改测试
 });
 
 const totalRestaurants = computed(() => {
-  return itinerary.value.dailyItineraries.reduce(
-      (sum, day) => sum + (day.restaurants?.length || 0),
-      0
-  );
+  // return itinerary.value.dailyItineraries.reduce(
+  //     (sum, day) => sum + (day.restaurants?.length || 0),
+  //     0
+  // );
+  return 0;//临时修改测试
 });
 
 // 图表引用
@@ -380,10 +371,8 @@ const chartRef = ref(null);
 // 方法
 const navigateTo = (path) => router.push(path);
 
-const getDayDate = (day) => {
-  const today = new Date();
-  const targetDate = new Date(today);
-  targetDate.setDate(today.getDate() + day - 1);
+const formatDate = (date) => {
+  const targetDate = new Date(date);
   return targetDate.toLocaleDateString("zh-CN", {
     month: "short",
     day: "numeric"
@@ -430,6 +419,7 @@ onUnmounted(() => {
   radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
   linear-gradient(135deg, var(--purple-1) 0%, var(--purple-2) 100%);
   isolation: isolate;
+  position: relative;
 }
 
 .app-layout::before {
@@ -559,6 +549,10 @@ onUnmounted(() => {
       rgba(102, 126, 234, 0.22),
       rgba(118, 75, 162, 0.18)
   );
+  /* 关键修改：添加整体滚动 */
+  height: 100vh;
+  overflow-y: auto;
+  margin-top: 72px; /* 添加margin-top，避免内容被固定header遮挡 */
 }
 
 .main-content::before {
@@ -570,15 +564,16 @@ onUnmounted(() => {
   width: 1px;
   background: rgba(255, 255, 255, 0.85);
   pointer-events: none;
+  z-index: 1;
 }
 
 /* Edge Toggle Button */
 .edge-toggle {
-  position: absolute;
-  left: 30px;
+  position: fixed;
+  left: calc(239px + 30px);
   top: 18px;
   transform: translateX(-50%);
-  z-index: 50;
+  z-index: 1100; /* 比header更高的z-index */
   width: 42px;
   height: 42px;
   border-radius: 16px;
@@ -612,11 +607,16 @@ onUnmounted(() => {
 }
 
 .app-layout.sidebar-collapsed .edge-toggle {
-  transform: translateX(6px);
+  left: 15px;
+  transform: translateX(0);
 }
 
 /* Header */
 .header.header-slogan {
+  position: fixed;
+  top: 0;
+  left: 239px;
+  right: 0;
   height: 72px;
   display: flex;
   align-items: center;
@@ -632,14 +632,21 @@ onUnmounted(() => {
       rgba(118, 75, 162, 0.18),
       transparent 60%
   ),
-  rgba(255, 255, 255, 0.55);
+  rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06),
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08),
   inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  position: relative;
+  z-index: 1000; /* 提高z-index，确保在最顶层 */
+  transition: left 0.3s ease; /* 添加过渡效果，与侧边栏动画同步 */
 }
+/* 当侧边栏折叠时，调整header的left值 */
+.app-layout.sidebar-collapsed .header.header-slogan {
+  left: 0; /* 侧边栏折叠时，header左对齐 */
+}
+
+
 
 .slogan-wrap {
   display: inline-flex;
@@ -686,6 +693,7 @@ onUnmounted(() => {
   right: 70px;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 1; /* 确保在header上方 */
 }
 
 .user-avatar {
@@ -1236,7 +1244,6 @@ onUnmounted(() => {
   gap: 6px;
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .result-container {
     grid-template-columns: 1fr;
@@ -1260,25 +1267,95 @@ onUnmounted(() => {
   .app-layout {
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
   }
 
-  .sidebar,
-  .sidebar.collapsed {
-    height: auto;
+  /* 修改侧边栏为移动端样式 */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    background: #ffffff;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    margin-top: 0;
     opacity: 1;
     pointer-events: auto;
-    transform: none;
   }
 
+  /* 修复：确保侧边栏在展开状态时正确显示 */
+  .sidebar.collapsed {
+    transform: translateX(-100%); /* 隐藏在左侧 */
+  }
+
+  /* 遮罩层样式 */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+
+  /* 当侧边栏展开时，显示出来 */
+  .sidebar:not(.collapsed) {
+    transform: translateX(0); /* 移动到可见位置 */
+  }
+
+  /* 修改header样式 */
+  .header.header-slogan {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0 16px;
+    height: 60px;
+    z-index:999;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* 修改main-content样式 */
+  .main-content {
+    height: 100vh;
+    margin-top: 0;
+    overflow-y: auto;
+    padding-top: 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 修改折叠按钮样式 */
   .edge-toggle {
     position: fixed;
-    left: 14px;
-    top: 14px;
+    left: 16px;
+    top: 18px;
     transform: none;
+    z-index: 1100;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+  }
+
+  .user-info {
+    position: static;
+    transform: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .content-area {
     padding: 16px;
+    padding-top: 0;
   }
 
   .result-container {
@@ -1309,6 +1386,15 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
+  .main-content {
+    height: 100vh;
+    padding-top: 50px;
+  }
+
+  .header.header-slogan {
+    height: 50px;
+  }
+
   .plan-title {
     font-size: 22px;
   }
@@ -1336,7 +1422,13 @@ onUnmounted(() => {
   }
 
   .user-info {
-    right: 16px;
+    position: static;
+    transform: none;
+  }
+
+  .edge-toggle {
+    left: 12px;
+    top: 15px;
   }
 }
 </style>

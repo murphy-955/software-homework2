@@ -86,8 +86,9 @@ export const parseItineraryFromMarkdown = (data) => {
         // ⚠️ 这里的地址要和你后端 Controller 对应，按后端实际改
         // 比如你后端写的是 @PostMapping("/deekseek/confirmItinerary")
         // 那就改成 '/deekseek/confirmItinerary'
-        url: '/itinerary/confirm',
+        url: 'deekseek/formatUserInput',
         method: 'POST',
+        timeout: 100000,
         data
     }).then(res => res.data)
 }

@@ -17,4 +17,6 @@ public interface UserMapper {
     User login(String userName, String password);
 
     int register(String id, String username, String password);
+
+    int updateUserInfo(String id,String result);
 }

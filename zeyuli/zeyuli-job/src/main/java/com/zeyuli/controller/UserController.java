@@ -1,9 +1,11 @@
 package com.zeyuli.controller;
 
 
+import com.zeyuli.enm.StatusCodeEnum;
 import com.zeyuli.pojo.vo.RegisterVo;
 import com.zeyuli.pojo.vo.UserVo;
 import com.zeyuli.service.impl.UserServiceImpl;
+import com.zeyuli.util.Response;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -35,4 +37,20 @@ public class UserController {
     public Map<String, Object> register(@RequestBody RegisterVo vo) {
         return userService.register(vo.getUserName(), vo.getPassword());
     }
+
+    @ApiOperation(value = "获取用户行程信息", notes = "获取用户格式化后的行程信息")
+    @GetMapping("/getTravelInfo")
+    public Object getTravelInfo(@RequestParam("token") String token) {
+        if (token == null) {
+            return Response.failed(StatusCodeEnum.LOGIN_FAILED);
+        }
+        return userService.getTravelInfo(token);
+    }
+
+    @ApiOperation(value = "缓存用户行程信息", notes = "缓存用户格式化后的行程信息")
+    @PostMapping("/cacheTravelInfo")
+    public Map<String, Object> cacheTravelInfo(@RequestParam("token") String token, @RequestBody Object obj) {
+        return userService.cacheTravelInfo(token, obj);
+    }
+
 }
