@@ -1,12 +1,14 @@
 CREATE DATABASE homework2;
 
 USE homework2;
+DROP TABLE IF EXISTS users;
 
 CREATE TABLE IF NOT EXISTS users
 (
     id       CHAR(32) PRIMARY KEY,
     user_name     VARCHAR(50) NOT NULL,
-    password CHAR(64)    NOT NULL
+    password CHAR(64)    NOT NULL,
+    personality_type VARCHAR(20) DEFAULT 'UNDEFINED'
 );
 
 # admin 12345678a
