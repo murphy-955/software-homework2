@@ -453,9 +453,9 @@ const scheduleUiUpdate = (tempMessageId) => {
     scrollToBottom();
   });
 };
-export const saveItinerary = async (itineraryData, token) => {
+const saveItinerary = async (itineraryData, token) => {
   try {
-    const response = await fetch(`user/cacheTravelInfo/?${token}`, {
+    const response = await fetch(`http://localhost:8080/user/cacheTravelInfo/?${token}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
