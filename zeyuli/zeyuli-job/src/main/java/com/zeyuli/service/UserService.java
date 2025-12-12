@@ -17,5 +17,5 @@ public interface UserService {
 
     Map<String, Object> register(String username, String password);
 
-    Map<String, Object> getTravelInfo(String token);
+    Object getTravelInfo(String token);
 }

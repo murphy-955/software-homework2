@@ -114,13 +114,13 @@ public class UserServiceImpl implements UserService {
      * @since : 2025-12-12 00:11
      */
     @Override
-    public Map<String, Object> getTravelInfo(String token) {
+    public Object getTravelInfo(String token) {
         String id = jwtUtil.getUserInfo(token)[0].substring(0, 16);
         String key = "user:formated:".concat(id);
         // key=user:formated:f969248d621bcded
         Object obj = redisTemplate.opsForValue().get(key);
         if (obj != null) {
-            return Response.success(obj);
+            return obj;
         }
         return Response.failed(StatusCodeEnum.LOGIN_FAILED);
     }

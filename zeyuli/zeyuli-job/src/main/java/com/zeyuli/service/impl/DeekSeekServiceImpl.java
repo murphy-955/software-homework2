@@ -1,5 +1,6 @@
 package com.zeyuli.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zeyuli.mappers.UserMapper;
 import com.zeyuli.pojo.User;
@@ -10,26 +11,28 @@ import com.zeyuli.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 调用ai业务层实现的接口
@@ -53,7 +56,7 @@ public class DeekSeekServiceImpl implements DeekSeekService {
     private UserMapper userMapper;
 
     @Autowired
-    private RedisTemplate<String,Object> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     // 存储用户对话历史，key: userId, value: 对话消息列表
     private final Map<String, List<Message>> conversationHistory = new ConcurrentHashMap<>();
@@ -82,45 +85,95 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                 || !hash.equals(info[2])) {
             return Flux.just("{\"error\":\"身份验证失败，无法获取行程\"}");
         }
-        String userId = info[0];
 
-        /* ---------------- 2. 构造 prompt ---------------- */
-        String promptText;
-        if (userInput == null || userInput.trim().isEmpty()) {
-            promptText = buildJsonTravelPrompt(startCity, endCity, startDate, endDate);
-        } else {
-            promptText = buildJsonTravelPromptWithUserInput(userInput, startCity, endCity, startDate, endDate);
+        /* ---------------- 2. 构造参数 ---------------- */
+        Map<String, String> param = Map.of(
+                "userInput", userInput == null ? "" : userInput,
+                "startCity", startCity,
+                "endCity", endCity,
+                "startDate", startDate.toString(),
+                "endDate", endDate.toString());
+
+        // 将参数转为JSON字符串（Python脚本需要）
+        String jsonParam;
+        try {
+            jsonParam = new ObjectMapper().writeValueAsString(param);
+        } catch (JsonProcessingException e) {
+            return Flux.error(new RuntimeException("参数序列化失败", e));
         }
 
-        /* ---------------- 3. 流式调用 & 落盘 ---------------- */
-        StringBuilder jsonBuffer = new StringBuilder();
-        String redisKey = "user:formated:".concat(res.getId().substring(0, 16));
+        /* ---------------- 3. 启动Python进程并处理流 ---------------- */
+        return Flux.create(sink -> {
+            Process process;
+            AtomicReference<Process> processRef = new AtomicReference<>();
 
-        return chatModel.stream(new Prompt(promptText))
-                .map(response -> response.getResult().getOutput().getText())
-                .doOnNext(jsonBuffer::append)
-                .doOnComplete(() -> {
-                    String raw = jsonBuffer.toString()
-                            .replaceFirst("(?is)^\\s*```(?:json)?\\s*", "")
-                            .replaceFirst("(?is)\\s*```\\s*$", "")
-                            .trim();
+            try {
+                // 获取Python脚本路径（建议配置在application.properties）
+                String scriptPath = "D:\\fzu\\Software\\homework2\\zeyuli\\zeyuli-job\\src\\main\\resources\\main.py";
+                List<String> command = Arrays.asList("python", scriptPath);
 
-                    /* 写 Redis */
-                    redisTemplate.opsForValue().set(redisKey, raw, 24, TimeUnit.HOURS);
-                    log.info("JSON 旅行计划已写入 Redis，key={}", redisKey);
+                ProcessBuilder pb = new ProcessBuilder(command)
+                        .redirectErrorStream(true); // 合并错误流到标准输出
 
-                    /* 历史记录只存 AI 返回的 JSON */
-                    List<Message> history = conversationHistory.computeIfAbsent(userId, k -> new ArrayList<>());
-                    history.add(new UserMessage(userInput == null ? "" : userInput));
-                    history.add(new AssistantMessage(raw));
-                    while (history.size() > MAX_HISTORY_SIZE) {
-                        if (history.size() > 2) {
-                            history.removeFirst();
-                            history.removeFirst();
-                        } else break;
+                // 启动进程
+                process = pb.start();
+                processRef.set(process);
+
+                // 写入参数到stdin
+                try (OutputStream stdin = process.getOutputStream();
+                     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin))) {
+                    writer.write(jsonParam);
+                    writer.flush(); // 必须flush确保数据写入
+                }
+
+                // 读取stdout流（关键：非阻塞处理）
+                Thread outputThread = new Thread(() -> {
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(process.getInputStream()))) {
+
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            // 处理Python脚本的特殊错误标记
+                            if (line.startsWith("error: ")) {
+                                sink.error(new RuntimeException(line.substring(7)));
+                                return;
+                            }
+                            sink.next(line); // 发射数据片段
+                        }
+
+                        // 检查进程退出状态
+                        int exitCode = process.waitFor();
+                        if (exitCode != 0) {
+                            sink.error(new RuntimeException("Python进程异常退出: " + exitCode));
+                        } else {
+                            sink.complete();
+                        }
+                    } catch (Exception e) {
+                        if (!sink.isCancelled()) {
+                            sink.error(new RuntimeException("流处理异常", e));
+                        }
                     }
                 });
+                outputThread.setDaemon(true);
+                outputThread.start();
+
+                // 处理订阅取消
+                sink.onDispose(() -> {
+                    Process p = processRef.get();
+                    if (p != null && p.isAlive()) {
+                        p.destroyForcibly(); // 确保清理资源
+                    }
+                    if (!outputThread.isInterrupted()) {
+                        outputThread.interrupt();
+                    }
+                });
+
+            } catch (Exception e) {
+                sink.error(new RuntimeException("进程启动失败", e));
+            }
+        }, FluxSink.OverflowStrategy.BUFFER); // 使用BUFFER避免背压问题
     }
+
 
     /* --------------------------------------------------
      * 下面 2 个 prompt 构造器强制 AI 输出指定 JSON 格式
@@ -130,35 +183,51 @@ public class DeekSeekServiceImpl implements DeekSeekService {
         long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return String.format("""
-        你是资深旅行规划师。请严格按照以下 JSON 格式返回行程，不要有任何额外文字。
-        字段说明：
-          - description：支持 Markdown 格式，可用 **加粗**、- 列表、> 引用等
-          - cost：人民币元，可写区间如 "50-80"
-          - durationHours：数字，可小数
-        行程天数：%d 天
-        出发：%s → %s，%s 至 %s
-
-        输出格式：
-        {
-          "days": [
-            {
-              "dayIndex": 1,
-              "date": "yyyy-MM-dd",
-              "label": "第1天",
-              "items": [
+                你是严格的 JSON 生成器，只返回合法 JSON，禁止任何注释、解释、markdown 代码块。
+                若格式错误，用户将无法解析，视为严重事故。
+                
+                下面是一段已验证的范例，你必须保持完全相同的键名、嵌套深度、数据类型（String/Number/List），仅把内容替换成本次行程的真实信息。
+                
+                === 范例开始 ===
                 {
-                  "time": "HH:mm",
-                  "title": "活动名称",
-                  "description": "简要说明（支持Markdown）",
-                  "attractions": "景点名称",
-                  "cost": "费用",
-                  "durationHours": 时长
+                  "days": [
+                    {
+                      "dayIndex": 1,
+                      "date": "2025-12-20",
+                      "label": "第1天",
+                      "items": [
+                        {
+                          "time": "09:00",
+                          "title": "抵达厦门",
+                          "description": "- 抵达 **厦门高崎机场**\\n- 乘坐 **机场快线** 前往市区\\n> 建议提前购买 **厦门公交卡**",
+                          "attractions": "厦门高崎机场",
+                          "cost": "约30元",
+                          "durationHours": 1
+                        },
+                        {
+                          "time": "14:00",
+                          "title": "南普陀寺",
+                          "description": "- 参观 **南普陀寺**\\n- 免费领香\\n- 登顶 **五老峰** 俯瞰厦大",
+                          "attractions": "南普陀寺",
+                          "cost": "0",
+                          "durationHours": 2.5
+                        }
+                      ]
+                    }
+                  ]
                 }
-              ]
-            }
-          ]
-        }
-        """, days, start, end, startDate.format(fmt), endDate.format(fmt));
+                === 范例结束 ===
+                
+                本次行程信息：
+                - 出发地：%s
+                - 目的地：%s
+                - 出发日期：%s
+                - 返程日期：%s
+                - 总天数：%d
+                
+                严格按照范例的键名、结构、类型生成 JSON，description 字段允许使用 Markdown 排版。
+                禁止输出范例之外的多余文字、禁止包裹 ```json、禁止注释。
+                """, start, end, startDate.format(fmt), endDate.format(fmt), days);
     }
 
     private String buildJsonTravelPromptWithUserInput(String userInput,
@@ -167,17 +236,17 @@ public class DeekSeekServiceImpl implements DeekSeekService {
         long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return String.format("""
-        你是资深旅行规划师。用户已对行程提出修改要求，请基于要求调整并重新输出完整 JSON。
-        输出格式与字段要求与刚才完全相同，description 仍支持 Markdown。
-
-        用户修改要求：
-        %s
-
-        行程天数：%d 天
-        出发：%s → %s，%s 至 %s
-
-        请直接返回 JSON，不要任何额外文字。
-        """, userInput, days, start, end, startDate.format(fmt), endDate.format(fmt));
+                你是资深旅行规划师。用户已对行程提出修改要求，请基于要求调整并重新输出完整 JSON。
+                输出格式与字段要求与刚才完全相同，description 仍支持 Markdown。
+                
+                用户修改要求：
+                %s
+                
+                行程天数：%d 天
+                出发：%s → %s，%s 至 %s
+                
+                请直接返回 JSON，不要任何额外文字。
+                """, userInput, days, start, end, startDate.format(fmt), endDate.format(fmt));
     }
 
     /**

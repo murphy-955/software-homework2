@@ -13,13 +13,12 @@ Content-Type: application/json
 
 ###
 GET http://localhost:8080/user/getTravelInfo?
-    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWLQQ6AIAzA_rKzBzcGCI_wD0Mw8YAhEtTE-Hfx2KZ9oLYAHtg6hwpHQSUsxorWbCMGSlN0hhEGaDUds-TUa4l527sqVzw7LrQS_Um6C3i0Rmvi_r8fuapgEV4AAAA.iitfVba4puAoXuw5ffLJCzSLOE8Xl9JgdbmSStSxdy1-fEpFnDyprR7IF4bYvqrykI4NKK2Oz3MpZ3PPcP7C_w&
-
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWKSQ6AIAwA_9KzB8tW5BH-oZR6MyES1MT4d_E2M5kHWs-QgHOxsRBJEOMk6lLU20jCma0ge5igNz1W3nXcP45Sr3IOE7MZg8P1rpCQgvdhRkfvB6KFiqVdAAAA.prWC91JgfnrH4Ru98MIhOzZlMR0C22t2UK8i6HqPoMK3K27uRSAz7hmdvA7DLhcEDC5lA8fGN3fgHfJoNr10Jg
 
 ###
 GET http://localhost:8080/deekseek/planItinerary?
-    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWLQQ6AIAzA_rKzBzcGCI_wD0Mw8YAhEtTE-Hfx2KZ9oLYAHtg6hwpHQSUsxorWbCMGSlN0hhEGaDUds-TUa4l527sqVzw7LrQS_Um6C3i0Rmvi_r8fuapgEV4AAAA.iitfVba4puAoXuw5ffLJCzSLOE8Xl9JgdbmSStSxdy1-fEpFnDyprR7IF4bYvqrykI4NKK2Oz3MpZ3PPcP7C_w&
-    startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169mCBgmUIdyiCiQcMkaAmxt3F4_95D9QWwINxzKhxFNRixDohMi5iUGmKbA3CAK2mY5acupaYt72vcsWz56JWpX6S7gIenSViq5neDxen4h5eAAAA.7zLvlvBpc8rzcx7Sh3WyPtXjiktn0rNtAnlGyQoibAceJ-bZsoqMrU4gyFJ5SyJsQRNkqkjqa0KFoRy_AIVJVA
+    &startCity=北京&endCity=上海&startDate=2025-07-01&endDate=2025-07-05
 
 ###
 POST http://localhost:8080/deekseek/formatUserInput

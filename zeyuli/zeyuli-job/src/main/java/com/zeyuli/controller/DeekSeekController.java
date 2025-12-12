@@ -8,7 +8,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,7 +34,7 @@ public class DeekSeekController {
     private DeekSeekService deekSeekService;
 
     @ApiOperation(value = "根据用户输入的出发地、目的地、出发日期、返回日期，生成旅行计划", notes = "根据用户输入的出发地、目的地、出发日期、返回日期，生成旅行计划")
-    @GetMapping(path = "/planItinerary", produces = "text/html;charset=UTF-8")
+    @GetMapping(path = "/planItinerary", produces = MediaType.APPLICATION_JSON_VALUE)
     public Flux<String> chat(@RequestParam("startCity") String startCity,
                              @RequestParam("endCity") String endCity,
                              @RequestParam("startDate") LocalDate startDate,

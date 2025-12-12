@@ -96,9 +96,7 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-            <version>1.0.0-M5</version> <!-- 使用已定义的版本 -->
         </dependency>
-
         <!-- 关闭 ReadTimeout 需要的 Netty 类 -->
         <dependency>
             <groupId>io.netty</groupId>

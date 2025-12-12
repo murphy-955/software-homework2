@@ -40,7 +40,7 @@ public class UserController {
 
     @ApiOperation(value = "获取用户行程信息", notes = "获取用户格式化后的行程信息")
     @GetMapping("/getTravelInfo")
-    public Map<String, Object> getTravelInfo(@RequestParam("token") String token) {
+    public Object getTravelInfo(@RequestParam("token") String token) {
         if (token == null) {
             return Response.failed(StatusCodeEnum.LOGIN_FAILED);
         }
