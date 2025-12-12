@@ -66,7 +66,7 @@ def build_prompt(data: dict) -> str:
 下面是一段已验证的范例，你必须保持完全相同的键名、嵌套深度、数据类型（String/Number/List），仅把内容替换成本次行程的真实信息。
 
 === 范例开始 ===
-{{
+{
   "days": [
     {{
       "dayIndex": 1,
@@ -84,7 +84,7 @@ def build_prompt(data: dict) -> str:
       ]
     }}
   ]
-}}
+}
 === 范例结束 ===
 
 本次行程信息：

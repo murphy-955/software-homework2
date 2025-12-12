@@ -12,8 +12,8 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:8080/user/cacheTravelInfo?
-    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKwQ2AIAxA0V169kChFGEId6iCiQcMkaAmxt3F4_95D9Q2QwBy3qNBJWiEhJ1YSy7irNMYPRPCAK2mY5KcupaYt72vcsWz56JXrX-S7gIBHVtGRWzfD8O1ktpeAAAA.fStYZRI_KOZhDFohqGwJt7KQnrTGtyY8qgaY8zGWJTKgEpO4KtKWr-AY4auyK_F7PL2RV4JCUsrg0T80yp-jKg
+POST http://localhost:8080/user/cacheTravelInfo
+    ?token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKSw6AIAwA0bt07cKWT4VDeIcimLjAEAlqYry7uJzJe6C2AB40O4cKR0ElWiyLMZojBkpTdFYjDNBqOmbJqWuJedv7Klc8ey60Ev0k3QU8sjWWiNG9H2piiZ1eAAAA.LxR2TH73vr5J6aFaqY7X4AlOuVlj_49dOUAQSbGBLu4jBFsYimhxMiDYa1qB8VI09cQHYEt_6H5m9qvPuHvLMA
 Content-Type: application/json
 
 {

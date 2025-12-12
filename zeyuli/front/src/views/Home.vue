@@ -455,7 +455,7 @@ const scheduleUiUpdate = (tempMessageId) => {
 };
 const saveItinerary = async (itineraryData, token) => {
   try {
-    const response = await fetch(`http://localhost:8080/user/cacheTravelInfo/?${token}`, {
+    const response = await fetch(`http://localhost:8080/user/cacheTravelInfo?token=${token}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

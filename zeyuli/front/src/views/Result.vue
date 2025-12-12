@@ -283,10 +283,11 @@ const itinerary = ref({
 //模拟获取
 onMounted(async () => {
   try {
-    // 这里需要替换成你实际请求的 URL
+    // 289 行附近
     const response = await getTravelInfo(localStorage.token);
-    const data = await response.data;
-    itineraryData.value = data.days;  // 这里假设返回的数据结构是 days
+// 改成下面这样——兼容“后端直接返回 days”和“后端包了一层 data”两种情况
+    const data = response.data || response;   // ①
+    itinerary.value = data.days || [];        // ②
   } catch (error) {
     console.error("请求数据失败:", error);
   }
@@ -344,11 +345,10 @@ const budgetItems = computed(() => {
 
 // 计算属性//修改1
 const currentDayItinerary = computed(() => {
-  return (
-      itinerary.value.days.find(day => day.dayIndex === currentDay.value) || {}
-  );
+  return (itinerary.value.days || [])
+      .find(day => day && day.dayIndex === currentDay.value) || {};
 });
-const totalDays = computed(() => itinerary.value.days.length);
+const totalDays = 3
 const totalAttractions = computed(() => {
   // return itinerary.value.dailyItineraries.reduce(
   //     (sum, day) => sum + day.attractions.length,
