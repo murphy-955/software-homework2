@@ -25,5 +25,11 @@
         FROM users
         WHERE id = #{id}
     </select>
+
+    <update id="updateUserInfo">
+        UPDATE users
+        SET personality_type=#{result}
+        WHERE id = #{id}
+    </update>
 </mapper>
 

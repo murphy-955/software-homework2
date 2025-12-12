@@ -18,4 +18,6 @@ public interface UserService {
     Map<String, Object> register(String username, String password);
 
     Object getTravelInfo(String token);
+
+    Map<String, Object> cacheTravelInfo(String token, Object obj);
 }

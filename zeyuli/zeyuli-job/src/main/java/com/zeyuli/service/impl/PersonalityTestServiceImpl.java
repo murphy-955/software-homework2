@@ -1,5 +1,7 @@
 package com.zeyuli.service.impl;
 
+import com.zeyuli.mappers.UserMapper;
+import com.zeyuli.pojo.User;
 import com.zeyuli.pojo.bo.Location;
 import com.zeyuli.pojo.bo.POI;
 import com.zeyuli.pojo.bo.PersonalityTest;
@@ -8,6 +10,8 @@ import com.zeyuli.pojo.vo.ItineraryPlanVO;
 import com.zeyuli.pojo.vo.PersonalityTestResultVO;
 import com.zeyuli.service.MapService;
 import com.zeyuli.service.PersonalityTestService;
+import com.zeyuli.service.UserService;
+import com.zeyuli.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,7 +35,11 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
     @Autowired
     @Qualifier("amapMapService")
     private MapService mapService;
-    
+
+    @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
+    private UserMapper userMapper;
     // 初始化人格测试数据
     private final PersonalityTest personalityTest;
 
@@ -50,8 +58,15 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
     
     @Override
     public PersonalityTestResultVO calculateTestResult(Map<String, String> userAnswers) {
+
         log.info("开始计算旅行人格测试结果，用户答案数量：{}", userAnswers.size());
-        
+        String token = userAnswers.get("token");
+        String id = jwtUtil.getUserInfo(token)[0];
+        User user = userMapper.selectUserInfo(id);
+        if (user==null
+        || jwtUtil.isExpiration(token)){
+            return null;
+        }
         PersonalityTestResultVO result = new PersonalityTestResultVO();
         result.setTestId(personalityTest.getTestId());
         result.setUserAnswers(userAnswers);
@@ -63,8 +78,13 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         // 确定主导人格类型
         String dominantType = determineDominantPersonalityType(traitScores);
         result.setDominantPersonalityType(dominantType);
-        
+        int i = userMapper.updateUserInfo(id, dominantType);
+        if (i==0){
+            return null;
+        }
+
         // 获取人格类型详情
+
         PersonalityTest.PersonalityType personalityType = personalityTypeMap.get(dominantType);
         if (personalityType != null) {
             result.setDominantPersonalityDescription(personalityType.getDescription());
@@ -113,7 +133,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         
         // 获取人格类型详情
         PersonalityTest.PersonalityType type = personalityTypeMap.get(personalityType);
-        System.out.println("人格类型"+type);  //min 3  max 5
         ItineraryPlanVO plan = new ItineraryPlanVO();
         plan.setPlanName(city + " " + days + "日游（" + type.getTypeName() + "风格）");
         plan.setCity(city);
@@ -126,7 +145,9 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         
         // 生成符合人格特质的景点列表
         List<POI> personalityAttractions = generatePersonalityAttractions(city, type, days);
-        
+        for(POI personalityAttraction : personalityAttractions) {
+            personalityAttraction.setName(city+personalityAttraction.getName());
+        }
         // 规划每日行程
         List<ItineraryPlanVO.DailyItinerary> dailyItineraries = new ArrayList<>();
         double totalCost = 0;
@@ -134,40 +155,41 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         // 根据人格类型决定每日景点数量
         int minAttractionsPerDay = type.getDailyAttractionCountRange().getMin();
         int maxAttractionsPerDay = type.getDailyAttractionCountRange().getMax();
-        
+
+        // 1. 先复制总景点列表，用于动态移除已分配的景点（避免重复）
+        List<POI> remainingAttractions = new ArrayList<>(personalityAttractions);
+        // 2. 遍历天数分配景点
         for (int i = 0; i < days; i++) {
             ItineraryPlanVO.DailyItinerary dailyPlan = new ItineraryPlanVO.DailyItinerary();
             dailyPlan.setDay(i + 1);
-            dailyPlan.setWeather(mapService.getWeatherInfo(city)); // 模拟天气
-            
+            dailyPlan.setWeather(mapService.getWeatherInfo(city));
+
             // 根据人格类型选择当日景点数量
             int attractionsCount = selectDailyAttractionsCount(minAttractionsPerDay, maxAttractionsPerDay, i, days);
-            
-            // 分配景点
+            // 修正：从剩余景点中动态分配，而非固定索引
             List<POI> dayAttractions = new ArrayList<>();
-            int startIndex = i * maxAttractionsPerDay;
-            for (int j = 0; j < attractionsCount && startIndex + j < personalityAttractions.size(); j++) {
-                dayAttractions.add(personalityAttractions.get(startIndex + j));
+
+            // 安全校验：剩余景点数 < 需分配数时，取全部剩余
+            int actualCount = Math.min(attractionsCount, remainingAttractions.size());
+            if (actualCount > 0) {
+                // 核心优化：按类型均衡选当日景点（避免单日类型集中）
+                dayAttractions = selectBalancedDailyAttractions(remainingAttractions, actualCount, type.getRecommendedAttractionTypes(), i);
+                // 从剩余列表中移除已分配的景点（避免重复）
+                remainingAttractions.removeAll(dayAttractions);
             }
+
             dailyPlan.setAttractions(dayAttractions);
-            
-            // 根据人格类型选择交通方式
-            String preferredTransport = selectTransportByPersonality(type, dayAttractions);
-            System.out.println("选择的交通方式"+preferredTransport);
-            
-            // 规划路线
+
+            // 后续逻辑（交通/路线/费用等）保持不变...
+            String preferredTransport = "driving";
             List<Route> dayRoutes = planDailyRoutesByPersonality(dayAttractions, preferredTransport, type);
             dailyPlan.setRoutes(dayRoutes);
-            System.out.println("规划的路线"+dayRoutes);
-            // 计算当日费用
             double dailyCost = calculateDailyCostByPersonality(dayAttractions, dayRoutes, type);
             dailyPlan.setDailyCost(dailyCost);
             totalCost += dailyCost;
-            System.out.println("当日费用"+dailyCost);
-            // 添加符合人格特质的建议
             List<String> suggestions = generatePersonalitySuggestions(type, dayAttractions.size());
             dailyPlan.setSuggestions(suggestions);
-            
+
             dailyItineraries.add(dailyPlan);
         }
         
@@ -191,7 +213,82 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         log.info("根据人格类型生成推荐行程完成，人格类型：{}，预计费用：{}", type.getTypeName(), totalCost);
         return plan;
     }
-    
+    /**
+     * 从剩余景点中按类型均衡选择当日景点
+     * @param remainingAttractions 剩余未分配的景点
+     * @param needCount 当日需要的数量
+     * @param typeWeights 人格类型的景点权重（如探险家：小众景点5、特色街区5）
+     * @param dayIndex 当前天数（用于随机种子）
+     * @return 类型均衡的当日景点
+     */
+    private List<POI> selectBalancedDailyAttractions(
+            List<POI> remainingAttractions,
+            int needCount,
+            Map<String, Integer> typeWeights,
+            int dayIndex
+    ) {
+        if (remainingAttractions.isEmpty() || needCount <= 0) {
+            return new ArrayList<>();
+        }
+
+        // 1. 给剩余景点打类型标签（按名称匹配权重key）
+        Map<POI, String> poiTypeMap = new HashMap<>();
+        for (POI poi : remainingAttractions) {
+            String poiName = poi.getName().toLowerCase();
+            // 匹配最相关的类型（可根据实际场景优化）
+            String matchedType = typeWeights.keySet().stream()
+                    .filter(type -> poiName.contains(type.toLowerCase()))
+                    .findFirst()
+                    .orElse("通用景点");
+            poiTypeMap.put(poi, matchedType);
+        }
+
+        // 2. 按类型分组
+        Map<String, List<POI>> typeGroupedPois = new HashMap<>();
+        for (POI poi : remainingAttractions) {
+            String type = poiTypeMap.get(poi);
+            typeGroupedPois.computeIfAbsent(type, k -> new ArrayList<>()).add(poi);
+        }
+
+        // 3. 按权重分配当日各类型数量（核心：优先选高权重类型，且覆盖多类型）
+        List<POI> dayAttractions = new ArrayList<>();
+        Random random = new Random(dayIndex * 100); // 固定种子，保证结果可复现
+        int totalWeight = typeWeights.values().stream().mapToInt(Integer::intValue).sum();
+        if (totalWeight == 0) totalWeight = 1;
+
+        // 按权重排序类型（高权重优先）
+        List<String> sortedTypes = typeWeights.entrySet().stream()
+                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        // 4. 逐个类型选景点，确保覆盖多类型
+        for (String type : sortedTypes) {
+            if (dayAttractions.size() >= needCount) break;
+            List<POI> typePois = typeGroupedPois.getOrDefault(type, new ArrayList<>());
+            if (typePois.isEmpty()) continue;
+
+            // 该类型当日分配数量（至少1个，不超过剩余需要）
+            int typeNeed = Math.max(1, (int) Math.round((double) typeWeights.get(type) / totalWeight * needCount));
+            typeNeed = Math.min(typeNeed, needCount - dayAttractions.size());
+
+            // 随机选该类型的景点
+            Collections.shuffle(typePois, random);
+            dayAttractions.addAll(typePois.subList(0, Math.min(typeNeed, typePois.size())));
+        }
+
+        // 5. 补充剩余数量（随机选，避免类型单一）
+        if (dayAttractions.size() < needCount) {
+            List<POI> temp = new ArrayList<>(remainingAttractions);
+            temp.removeAll(dayAttractions);
+            Collections.shuffle(temp, random);
+            dayAttractions.addAll(temp.subList(0, Math.min(needCount - dayAttractions.size(), temp.size())));
+        }
+
+        // 6. 打乱当日景点顺序
+        Collections.shuffle(dayAttractions, random);
+        return dayAttractions;
+    }
     @Override
     public Map<String, PersonalityTest.PersonalityType> getAllPersonalityTypes() {
         return personalityTypeMap;
@@ -308,7 +405,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         attractionTypes.put("自然景观", 5);
         attractionTypes.put("户外运动", 5);
         attractionTypes.put("主题乐园", 4);
-        attractionTypes.put("探险活动", 5);
+        attractionTypes.put("奇遇活动", 5);
         type.setRecommendedAttractionTypes(attractionTypes);
         
         Map<String, Integer> transportTypes = new HashMap<>();
@@ -637,8 +734,9 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
      */
     private List<POI> generatePersonalityAttractions(String city, PersonalityTest.PersonalityType type, int days) {
         // 1. 基础配置：每日4个景点，总数量 = 天数 × 4
-        int totalCount = days * 4;
+        int totalCount = days * 8;
         Map<String, Integer> attractionWeights = type.getRecommendedAttractionTypes();
+        System.out.println("推荐类型======="+type.getRecommendedAttractionTypes());
         List<POI> allAttractions = new ArrayList<>();
         // 用于去重的Set（按景点名称去重）
         Set<String> attractionNames = new HashSet<>();
@@ -661,7 +759,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
             if (allocateCount < 1) {
                 allocateCount = 1; // 至少选1个（避免权重低的类型无景点）
             }
-
             // 4. 根据Key获取对应类型的景点（精准关键词映射）
             List<Location> locations = getLocationsByKey(key, city, allocateCount);
             List<POI> pois = convertLocationToPOI(locations);
@@ -673,7 +770,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
                 }
             }
         }
-
         // 6. 兜底补充：如果总数量不足，用通用景点补齐
         if (allAttractions.size() < totalCount) {
             int needMore = totalCount - allAttractions.size();
@@ -703,6 +799,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
             case "小众景点" -> mapService.searchLocations("小众景点", city, count);
             case "特色街区" -> mapService.searchLocations("特色街区", city, count);
             // 可扩展其他类型（如“美食街”“主题乐园”）
+
             default -> mapService.searchLocations(key, city, count);
         };
     }
@@ -745,7 +842,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
             case "自驾":
                 return "driving";
             case "骑行":
-                return "bicycling";
+                return "bicyling";
             case "出租车":
                 return "taxi";
             case "步行":
@@ -768,7 +865,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         
         POI currentLocation = attractions.get(0);
         List<POI> remainingAttractions = new ArrayList<>(attractions.subList(1, attractions.size()));
-        System.out.println("剩余景点"+remainingAttractions);
 
         while (!remainingAttractions.isEmpty()) {
             POI nextAttraction;
@@ -781,7 +877,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
             }
             String origin = currentLocation.getName();
             String destination = nextAttraction.getName();
-            System.out.println("计算路线" + origin + "到" + destination);
             Route route = mapService.getRoute(origin, destination, transportMode);
             if (route != null) {
                 routes.add(route);
@@ -801,6 +896,8 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         for (POI attraction : attractions) {
             String origin = current.getLat() + "," + current.getLng();
             String destination = attraction.getLat() + "," + attraction.getLng();
+            System.out.println("current====== " + current.getName());
+            System.out.println("attraction====== " + attraction.getName());
             double distance = mapService.getDistance(origin, destination);
             
             if (distance < minDistance) {
@@ -808,7 +905,6 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
                 nearest = attraction;
             }
         }
-        System.out.println("最近景点"+nearest);
         return nearest;
     }
     
@@ -947,7 +1043,7 @@ public class PersonalityTestServiceImpl implements PersonalityTestService {
         if (currentDay == 0 || currentDay == totalDays - 1) {
             return min;
         }
-        
+        System.out.println("day: " + currentDay+"返回"+min + (int)(Math.random() * (max - min + 1)));
         // 中间天数安排较多景点
         return min + (int)(Math.random() * (max - min + 1));
     }

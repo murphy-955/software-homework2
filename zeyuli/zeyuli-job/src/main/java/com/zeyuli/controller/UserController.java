@@ -47,4 +47,10 @@ public class UserController {
         return userService.getTravelInfo(token);
     }
 
+    @ApiOperation(value = "缓存用户行程信息", notes = "缓存用户格式化后的行程信息")
+    @PostMapping("/cacheTravelInfo")
+    public Map<String, Object> cacheTravelInfo(@RequestParam("token") String token, @RequestBody Object obj) {
+        return userService.cacheTravelInfo(token, obj);
+    }
+
 }
