@@ -92,48 +92,51 @@
             <div v-for="m in messages" :key="m.id" class="msg-row" :class="m.role">
               <div v-if="m.role === 'assistant'" class="msg-avatar">🤖</div>
 
+              <!-- 修改消息气泡部分 -->
               <div class="msg-bubble" :class="m.role">
-                <!-- 动态加载点 -->
-                <div v-if="isTypingMessage(m)" class="typing-dots">
-                  <span></span><span></span><span></span>
+                <!-- 删除原有的markdown渲染 -->
+                <!-- <div class="msg-markdown" v-html="renderMarkdown(m.content, !isStreamingAssistant(m))"></div> -->
+
+                <!-- 新增：JSON数据解析展示 -->
+                <div v-if="m.itineraryData" class="itinerary-content">
+                  <div class="itinerary-summary">
+                    <h3>📅 行程概览</h3>
+                    <p>共 {{ m.itineraryData.days.length }} 天行程</p>
+                  </div>
+
+                  <div v-for="day in m.itineraryData.days" :key="day.dayIndex" class="day-section">
+                    <div class="day-header">
+                      <span class="day-label">{{ day.label }}</span>
+                      <span class="day-date">{{ day.date }}</span>
+                    </div>
+
+                    <div v-for="item in day.items" :key="item.time" class="activity-item">
+                      <div class="activity-time">{{ item.time }}</div>
+                      <div class="activity-content">
+                        <div class="activity-title">{{ item.title }}</div>
+                        <div class="activity-description" v-html="formatDescription(item.description)"></div>
+                        <div class="activity-details">
+                          <span class="detail-tag">📍 {{ item.attractions }}</span>
+                          <span class="detail-tag">💰 {{ item.cost }}</span>
+                          <span class="detail-tag">⏱ {{ item.durationHours }}小时</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <!-- assistant：Markdown 渲染 -->
-                <div
-                    v-if="m.role === 'assistant'"
-                    class="msg-markdown"
-                    v-html="renderMarkdown(m.content, !isStreamingAssistant(m))"
-                ></div>
+                <!-- 保留纯文本回退 -->
+                <div v-else class="msg-text">{{ m.content }}</div>
 
-                <!-- user：纯文本 -->
-                <div v-else class="msg-text">
-                  {{ m.content }}
-                </div>
+                <div v-if="m.meta" class="msg-meta">{{ m.meta }}</div>
 
-                <div v-if="m.meta" class="msg-meta">
-                  {{ m.meta }}
-                </div>
-
-                <!-- 确认行程按钮：只在最后一条助手消息上出现 -->
-                <div v-if="showConfirmFor(m)" class="msg-actions">
-                  <button
-                      class="btn btn-primary btn-sm"
-                      type="button"
-                      @click="confirmItinerary(m)"
-                  >
-                    ✅ 确认该行程
-                  </button>
-                  <button
-                      class="btn btn-secondary btn-sm"
-                      type="button"
-                      @click="copyMarkdown(m.content)"
-                  >
-                    📋 复制 Markdown
-                  </button>
+                <!-- 流式加载指示器 -->
+                <div v-if="m.isStreaming" class="typing-indicator">
+                  <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                  </div>
                 </div>
               </div>
-
-              <div v-if="m.role === 'user'" class="msg-avatar user">🧑</div>
             </div>
           </div>
 
@@ -228,6 +231,7 @@
   </div>
 </template>
 
+
 <script setup>
 import {
   ref,
@@ -239,9 +243,7 @@ import {
 } from "vue";
 import { useRouter } from "vue-router";
 import { planItinerary, parseItineraryFromMarkdown } from "../api/itinerary";
-import MarkdownIt from "markdown-it";
-import DOMPurify from "dompurify";
-
+import DOMPurify from 'dompurify';
 const router = useRouter();
 
 const sidebarCollapsed = ref(false);
@@ -265,12 +267,93 @@ const pendingItineraryData = ref({
   endDate: "",
 });
 
-// Markdown 渲染器
-const md = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: true,
-});
+// JSON解析和自然语言格式化函数
+const parseAndFormatItinerary = (jsonData) => {
+  try {
+    // 如果是字符串，先尝试解析为JSON
+    let data = jsonData;
+    if (typeof jsonData === 'string') {
+      // 清理可能的无效字符
+      const cleaned = jsonData.replace(/[\x00-\x1F\x7F]/g, '').trim();
+      if (!cleaned) return { days: [] };
+
+      data = JSON.parse(cleaned);
+    }
+
+    // 验证数据结构
+    if (!data || typeof data !== 'object') {
+      throw new Error('无效的数据格式');
+    }
+
+    // 确保days是数组
+    if (!Array.isArray(data.days)) {
+      data.days = [];
+    }
+
+    // 验证每个day的结构
+    data.days.forEach((day, index) => {
+      if (!day.dayIndex) day.dayIndex = index + 1;
+      if (!day.label) day.label = `第${day.dayIndex}天`;
+      if (!day.items) day.items = [];
+      if (!Array.isArray(day.items)) day.items = [];
+
+      // 验证每个item的结构
+      day.items.forEach(item => {
+        if (!item.time) item.time = '待定';
+        if (!item.title) item.title = '未命名活动';
+        if (!item.description) item.description = '';
+        if (!item.attractions) item.attractions = '';
+        if (!item.cost) item.cost = '待定';
+        if (!item.durationHours) item.durationHours = 0;
+      });
+    });
+
+    return data;
+  } catch (error) {
+    console.error('解析行程数据失败:', error, '原始数据:', jsonData);
+    // 返回一个安全的空结构
+    return {
+      days: [],
+      error: error.message
+    };
+  }
+};
+
+// 修改formatDescription函数，确保返回安全的HTML
+const formatDescription = (description) => {
+  if (!description) return '';
+  // 使用DOMPurify进行安全过滤
+  return DOMPurify.sanitize(
+      description
+          .replace(/\\n/g, '<br>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/> (.*?)(<br>|$)/g, '<blockquote>$1</blockquote>')
+  );
+};
+
+// 将JSON数据转换为自然语言摘要
+const generateNaturalLanguageSummary = (itineraryData) => {
+  if (!itineraryData.days || itineraryData.days.length === 0) {
+    return '暂无行程信息';
+  }
+
+  const days = itineraryData.days;
+  const totalDays = days.length;
+  const firstDay = days[0];
+  const lastDay = days[days.length - 1];
+
+  let summary = `为您规划了${totalDays}天行程，从${firstDay.date}到${lastDay.date}。`;
+
+  // 添加每天的主要活动
+  days.forEach(day => {
+    if (day.items && day.items.length > 0) {
+      const mainActivities = day.items.map(item => item.title).join('、');
+      summary += ` ${day.label}主要安排：${mainActivities}。`;
+    }
+  });
+
+  return summary;
+};
 
 const escapeHtml = (unsafe = "") =>
     unsafe
@@ -279,73 +362,6 @@ const escapeHtml = (unsafe = "") =>
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-
-// todo
-const renderMarkdown = (text = "", isFinal = true) => {
-  const raw = text || "";
-
-  if (!raw) return "";
-
-  if (isFinal) {
-    // Parse the JSON data from the markdown if applicable
-    try {
-      const data = JSON.parse(raw);
-
-      // Format the data into markdown
-      const formattedMarkdown = data.days.map(day => {
-        let dayMarkdown = `## ${day.label} (${day.date})\n\n`;
-
-        day.items.forEach(item => {
-          dayMarkdown += `### ${item.title} (${item.time})\n`;
-          dayMarkdown += `- **Description:** ${item.description}\n`;
-          dayMarkdown += `- **Attractions:** ${item.attractions}\n`;
-          dayMarkdown += `- **Cost:** ${item.cost}\n`;
-          dayMarkdown += `- **Duration:** ${item.durationHours} hours\n\n`;
-        });
-
-        return dayMarkdown;
-      }).join("\n");
-
-      // Render the formatted markdown and sanitize it
-      const html = md.render(formattedMarkdown);
-      return DOMPurify.sanitize(html);
-
-    } catch (error) {
-      return "Invalid data format.";
-    }
-  }
-
-  // Handling live markdown parsing (e.g., stream-like behavior)
-  const fenceRegex = /```/g;
-  let match;
-  const indices = [];
-  while ((match = fenceRegex.exec(raw)) !== null) {
-    indices.push(match.index);
-  }
-
-  let stablePart = raw;
-  let tail = "";
-
-  if (indices.length % 2 === 1) {
-    const lastFenceIndex = indices[indices.length - 1];
-    stablePart = raw.slice(0, lastFenceIndex);
-    tail = raw.slice(lastFenceIndex);
-  }
-
-  const stableHtml = md.render(stablePart);
-  const tailHtml = tail
-      ? `<span class="md-stream-tail">${escapeHtml(tail).replace(
-          /\n/g,
-          "<br/>"
-      )}</span>`
-      : "";
-
-  return DOMPurify.sanitize(stableHtml + tailHtml);
-};
-
-
-const isStreamingAssistant = (m) =>
-    m.role === "assistant" && m.id.startsWith("temp-");
 
 // 自动调整文本域高度
 const adjustTextareaHeight = () => {
@@ -438,7 +454,7 @@ const scheduleUiUpdate = (tempMessageId) => {
   });
 };
 
-// 开始规划（流式）
+// 修改后的startPlanning函数
 const startPlanning = async () => {
   const text = travelRequest.value.trim();
   if (!text || loading.value) return;
@@ -449,6 +465,7 @@ const startPlanning = async () => {
   adjustTextareaHeight();
 
   let tempMessageId;
+  let rawJsonData = '';
 
   try {
     // 创建流式临时消息
@@ -456,15 +473,16 @@ const startPlanning = async () => {
     messages.value.push({
       id: tempMessageId,
       role: "assistant",
-      content: "",
-      meta: "正在生成行程...",
+      content: "正在为您规划行程...",
+      itineraryData: null, // 新增：存储解析后的JSON数据
+      meta: "正在生成...",
+      isStreaming: true
     });
 
     await nextTick();
     scrollToBottom();
 
-    // 这里可以解析用户输入中的城市和日期信息
-    // 为了简化，我们使用示例数据，实际项目中应该解析用户输入
+    // 解析用户输入
     const parsedInfo = parseUserInput(text);
 
     const params = {
@@ -476,45 +494,84 @@ const startPlanning = async () => {
       userInput: text,
     };
 
-    latestContent = "";
+    // 修改startPlanning函数中的流式处理部分
+    let parseAttempts = 0;
+    const MAX_PARSE_ATTEMPTS = 3;
 
-    // 使用流式响应处理
+    // 流式接收JSON数据
+    // 流式接收JSON数据
     await planItinerary(params, (chunk) => {
-      const cleaned = String(chunk)
-          .replace(/^data:\s?/gm, "")
-          .replace(/\n\n$/g, "\n");
-      latestContent += cleaned;
-      scheduleUiUpdate(tempMessageId);
+      // 累积原始JSON数据
+      rawJsonData += chunk;
+
+      // 限制解析频率，避免过于频繁的解析尝试
+      if (parseAttempts < MAX_PARSE_ATTEMPTS) {
+        try {
+          // 尝试解析累积的数据
+          const parsedData = parseAndFormatItinerary(rawJsonData);
+          parseAttempts = 0; // 重置尝试次数
+
+          // 更新临时消息
+          const tempIdx = messages.value.findIndex((m) => m.id === tempMessageId);
+          if (tempIdx !== -1) {
+            messages.value[tempIdx].itineraryData = parsedData;
+            messages.value[tempIdx].content = generateNaturalLanguageSummary(parsedData);
+
+            // 触发响应式更新
+            messages.value = [...messages.value];
+            scheduleUiUpdate(tempMessageId);
+          }
+        } catch (error) {
+          parseAttempts++;
+          // JSON还不完整，继续累积
+          console.log('接收JSON数据中...', chunk.length, 'bytes');
+        }
+      }
     });
 
-    // 流式结束后，把临时消息转成正式 assistant 消息
+    // 流式结束后，确认数据完整性
+    let finalData;
+    try {
+      finalData = parseAndFormatItinerary(rawJsonData);
+    } catch (error) {
+      console.error('最终JSON解析失败:', error);
+      throw new Error('行程数据格式错误');
+    }
+
+    // 将临时消息转为正式消息
     const tempIdx = messages.value.findIndex((m) => m.id === tempMessageId);
     if (tempIdx !== -1) {
       messages.value[tempIdx] = {
         id: `${Date.now()}-${Math.random()}`,
         role: "assistant",
-        content: latestContent,
-        meta: "",
+        content: generateNaturalLanguageSummary(finalData),
+        itineraryData: finalData,
+        meta: "行程生成完成",
+        isStreaming: false
       };
     }
 
-    // 保存第一个接口返回的数据，用于后续确认
+    // 保存行程数据供确认使用
     pendingItineraryData.value = {
-      markdown: latestContent,
+      rawData: rawJsonData,
+      parsedData: finalData,
       startCity: parsedInfo.startCity,
       endCity: parsedInfo.endCity,
       startDate: parsedInfo.startDate,
       endDate: parsedInfo.endDate,
     };
 
+    // 添加确认提示
     await pushMsg(
         "assistant",
-        "行程规划完成！请检查内容，若满意可以点击\"确认该行程\"，我会为你生成结构化行程数据。",
+        "行程规划完成！请检查内容，若满意可以点击\"确认该行程\"。",
         "系统提示"
-  );
+    );
+
   } catch (error) {
     console.error("规划行程失败:", error);
 
+    // 清理临时消息
     if (tempMessageId) {
       const tempIdx = messages.value.findIndex((m) => m.id === tempMessageId);
       if (tempIdx !== -1) {
@@ -524,7 +581,7 @@ const startPlanning = async () => {
 
     await pushMsg(
         "assistant",
-        "抱歉，规划过程中出现了问题。请检查网络连接或稍后重试。",
+        `抱歉，规划过程中出现了问题：${error.message}`,
         "系统提示"
     );
   } finally {
@@ -532,11 +589,11 @@ const startPlanning = async () => {
   }
 };
 
+
 // 解析用户输入，提取城市和日期信息
 const parseUserInput = (input) => {
   // 这里实现简单的解析逻辑
   // 实际项目中可能需要更复杂的自然语言处理
-
   // 示例：匹配"X日游"或"X天"
   const dayMatch = input.match(/(\d+)(?:日|天)/);
   const days = dayMatch ? parseInt(dayMatch[1]) : 3;
@@ -557,7 +614,6 @@ const parseUserInput = (input) => {
     endDate: formatDate(endDate),
   };
 };
-
 // 格式化日期为 YYYY-MM-DD
 const formatDate = (date) => {
   const year = date.getFullYear();
@@ -565,7 +621,6 @@ const formatDate = (date) => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-
 /** 只对"最后一条正式 assistant 消息"展示确认按钮 */
 const lastAssistantIndex = computed(() => {
   for (let i = messages.value.length - 1; i >= 0; i--) {
@@ -588,14 +643,19 @@ const showConfirmFor = (m) => {
   );
 };
 
-// 确认行程：调用第二个接口格式化数据并缓存
+// 修改确认行程函数
 const confirmItinerary = async (m) => {
   try {
     loading.value = true;
 
+    if (!pendingItineraryData.value.parsedData) {
+      throw new Error('没有可确认的行程数据');
+    }
+
     // 调用第二个接口格式化数据
     const formattedData = await parseItineraryFromMarkdown({
-      markdown: pendingItineraryData.value.markdown,
+      // 这里可能需要调整参数，因为现在不是markdown了
+      itineraryData: pendingItineraryData.value.parsedData,
       startCity: pendingItineraryData.value.startCity,
       endCity: pendingItineraryData.value.endCity,
       startDate: pendingItineraryData.value.startDate,
@@ -603,27 +663,27 @@ const confirmItinerary = async (m) => {
       token: localStorage.getItem("token") || ""
     });
 
-    // 缓存到浏览器（localStorage 或 sessionStorage）
-    // 使用 localStorage 以便其他页面可以访问
+    // 缓存到浏览器
     localStorage.setItem("confirmedItinerary", JSON.stringify({
       ...formattedData,
       timestamp: new Date().toISOString(),
     }));
 
-    // 添加事件通知其他组件/页面
+    // 通知其他组件
     window.dispatchEvent(new CustomEvent('itineraryConfirmed', {
       detail: formattedData
     }));
 
     await pushMsg(
         "assistant",
-        "已确认 ✅ 行程已解析为结构化数据，你可以在\"我的行程 / 预算管理 / 地图视图\"中查看。",
+        "✅ 行程已确认！你可以在\"我的行程\"页面查看详细安排。",
         "系统提示"
-  );
+    );
 
     // 清空待处理数据
     pendingItineraryData.value = {
-      markdown: "",
+      rawData: "",
+      parsedData: null,
       startCity: "",
       endCity: "",
       startDate: "",
@@ -634,7 +694,7 @@ const confirmItinerary = async (m) => {
     console.error("确认行程失败：", error);
     await pushMsg(
         "assistant",
-        "确认行程时出错，请稍后重试。",
+        `确认行程时出错：${error.message}`,
         "系统提示"
     );
   } finally {
@@ -1105,6 +1165,122 @@ defineExpose({
 .msg-bubble.user .msg-meta {
   border-top-color: rgba(255, 255, 255, 0.18);
 }
+/* JSON行程内容样式 */
+.itinerary-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.itinerary-summary {
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border-left: 4px solid #667eea;
+}
+
+.itinerary-summary h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.day-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #667eea40;
+}
+
+.day-label {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.day-date {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.activity-item:last-child {
+  margin-bottom: 0;
+}
+
+.activity-time {
+  min-width: 60px;
+  font-weight: 600;
+  color: #667eea;
+  font-size: 13px;
+  padding-top: 2px;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.activity-description {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.activity-description strong {
+  color: #334155;
+  font-weight: 600;
+}
+
+.activity-description blockquote {
+  margin: 4px 0;
+  padding-left: 8px;
+  border-left: 3px solid #cbd5e1;
+  color: #64748b;
+  font-style: italic;
+}
+
+.activity-details {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-tag {
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
 
 /* Markdown 展示 */
 .msg-markdown {
@@ -1379,6 +1555,19 @@ defineExpose({
 
 /* 移动端 */
 @media (max-width: 768px) {
+  .activity-item {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .activity-time {
+    min-width: auto;
+  }
+
+  .activity-details {
+    gap: 6px;
+  }
+
   .app-layout {
     display: flex;
     flex-direction: column;
