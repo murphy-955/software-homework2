@@ -262,7 +262,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import {getTravelInfo, result} from "../api/result.js";
+import {getTravelInfo} from "../api/result.js";
 import {getHot} from "../api/studentRoute.js";
 
 const router = useRouter();
@@ -278,81 +278,8 @@ const currentDay = ref(1);
 const itinerary = ref({
   days: []
 });
-// const itinerary = ref({
-//   planName: "北京三日文化之旅",
-//   days: 3,
-//   totalBudget: 1500,
-//   city: "北京",
-//   dailyItineraries: [
-//     {
-//       day: 1,
-//       attractions: [
-//         {
-//           name: "故宫博物院",
-//           time: "09:00",
-//           cost: 60,
-//           duration: "2-3小时",
-//           description: "参观世界文化遗产，感受明清皇家宫殿的雄伟壮观"
-//         },
-//         {
-//           name: "景山公园",
-//           time: "14:00",
-//           cost: 2,
-//           duration: "1-2小时",
-//           description: "俯瞰故宫全景，欣赏北京城景"
-//         },
-//         {
-//           name: "王府井步行街",
-//           time: "18:00",
-//           cost: 100,
-//           duration: "2小时",
-//           description: "品尝北京小吃，体验商业街繁华"
-//         }
-//       ],
-//       restaurants: ["全聚德烤鸭", "老北京炸酱面"]
-//     },
-//     {
-//       day: 2,
-//       attractions: [
-//         {
-//           name: "天坛公园",
-//           time: "09:00",
-//           cost: 15,
-//           duration: "2小时",
-//           description: "古代皇帝祭天场所，建筑精美"
-//         },
-//         {
-//           name: "颐和园",
-//           time: "13:00",
-//           cost: 30,
-//           duration: "3-4小时",
-//           description: "皇家园林，湖光山色美不胜收"
-//         }
-//       ],
-//       restaurants: ["东来顺涮羊肉", "护国寺小吃"]
-//     },
-//     {
-//       day: 3,
-//       attractions: [
-//         {
-//           name: "长城八达岭",
-//           time: "08:00",
-//           cost: 40,
-//           duration: "全天",
-//           description: "世界奇迹，感受古代军事防御工程"
-//         },
-//         {
-//           name: "鸟巢水立方",
-//           time: "17:00",
-//           cost: 0,
-//           duration: "1-2小时",
-//           description: "现代奥运场馆，夜景迷人"
-//         }
-//       ],
-//       restaurants: ["北京四合院私房菜"]
-//     }
-//   ]
-// });
+
+
 //模拟获取
 onMounted(async () => {
   try {
@@ -364,6 +291,8 @@ onMounted(async () => {
     console.error("请求数据失败:", error);
   }
 });
+
+
 
 // 预算分解数据
 //公里数
