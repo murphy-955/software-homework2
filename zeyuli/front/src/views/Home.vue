@@ -310,6 +310,7 @@ const parseAndFormatItinerary = (jsonData) => {
 
     return data;
   } catch (error) {
+    console.error('解析行程数据失败:', error, '原始数据:', jsonData);
     // 返回一个安全的空结构
     return {
       days: [],
@@ -480,7 +481,7 @@ const startPlanning = async () => {
 
     await nextTick();
     scrollToBottom();
-l
+
     // 解析用户输入
     const parsedInfo = parseUserInput(text);
 
@@ -533,7 +534,7 @@ l
     try {
       finalData = parseAndFormatItinerary(rawJsonData);
     } catch (error) {
-      // console.error('最终JSON解析失败:', error);
+      console.error('最终JSON解析失败:', error);
       throw new Error('行程数据格式错误');
     }
 
