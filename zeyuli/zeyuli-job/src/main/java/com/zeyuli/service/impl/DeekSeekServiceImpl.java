@@ -82,7 +82,7 @@ public class DeekSeekServiceImpl implements DeekSeekService {
 
         /* ---------------- 2. 构造参数 ---------------- */
         Map<String, String> param = Map.of(
-                "userInput", userInput == null ? "" : userInput,
+                "userInput", userInput,
                 "startCity", startCity,
                 "endCity", endCity,
                 "startDate", startDate.toString(),
@@ -91,7 +91,14 @@ public class DeekSeekServiceImpl implements DeekSeekService {
         // 将参数转为JSON字符串（Python脚本需要）
         String jsonParam;
         try {
-            jsonParam = new ObjectMapper().writeValueAsString(param);
+            Map<String, String> cleanedParam = new HashMap<>();
+            cleanedParam.put("userInput", cleanString(userInput));
+            cleanedParam.put("startCity", cleanString(startCity));
+            cleanedParam.put("endCity", cleanString(endCity));
+            cleanedParam.put("startDate", startDate.toString());
+            cleanedParam.put("endDate", endDate.toString());
+
+            jsonParam = new ObjectMapper().writeValueAsString(cleanedParam);
         } catch (JsonProcessingException e) {
             return Flux.error(new RuntimeException("参数序列化失败", e));
         }
@@ -123,7 +130,7 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                 // 读取stdout流（关键：非阻塞处理）
                 Thread outputThread = new Thread(() -> {
                     try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(process.getInputStream()))) {
+                            new InputStreamReader(process.getInputStream(),StandardCharsets.UTF_8))) {
 
                         String line;
                         while ((line = reader.readLine()) != null) {
@@ -166,6 +173,40 @@ public class DeekSeekServiceImpl implements DeekSeekService {
                 sink.error(new RuntimeException("进程启动失败", e));
             }
         }, FluxSink.OverflowStrategy.BUFFER); // 使用BUFFER避免背压问题
+    }
+
+    /**
+     * 清理字符串中的无效UTF-8字符
+     */
+    private String cleanString(String input) {
+        if (input == null) {
+            return "";
+        }
+
+        // 移除无效的代理对和不可见字符
+        StringBuilder clean = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (Character.isSurrogate(c)) {
+                // 处理代理对
+                if (Character.isHighSurrogate(c) && i + 1 < input.length()
+                        && Character.isLowSurrogate(input.charAt(i + 1))) {
+                    // 有效的代理对，保留
+                    clean.append(c);
+                    clean.append(input.charAt(i + 1));
+                    i++; // 跳过下一个字符
+                }
+                // 无效的代理字符，跳过
+            } else if (c >= 32 && c <= 126 || c >= 0x4E00 && c <= 0x9FFF) {
+                // ASCII可打印字符和基本的中文字符范围
+                clean.append(c);
+            } else if (c == '\n' || c == '\r' || c == '\t') {
+                // 允许的空白字符
+                clean.append(c);
+            }
+            // 其他字符跳过
+        }
+        return clean.toString();
     }
 
     /**
