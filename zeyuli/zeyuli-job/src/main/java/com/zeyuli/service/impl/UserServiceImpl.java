@@ -3,6 +3,7 @@ package com.zeyuli.service.impl;
 
 import com.zeyuli.enm.StatusCodeEnum;
 import com.zeyuli.mappers.UserMapper;
+import com.zeyuli.pojo.User;
 import com.zeyuli.pojo.vo.UserVo;
 import com.zeyuli.service.UserService;
 import com.zeyuli.strategy.login.LoginFactory;
@@ -12,9 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
+import reactor.core.publisher.Flux;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -123,5 +127,33 @@ public class UserServiceImpl implements UserService {
             return obj;
         }
         return Response.failed(StatusCodeEnum.LOGIN_FAILED);
+    }
+
+    /**
+     * 将用户行程缓存至redis中
+     *
+     * @author : 李泽聿
+     * @since : 2025-12-12 15:07
+     * @param token 用户token
+     * @param obj 用户行程信息
+     * @return : java.lang.Object
+     */
+    @Override
+    public Map<String, Object> cacheTravelInfo(String token, Object obj) {
+        String[] info = jwtUtil.getUserInfo(token);
+        User res = userMapper.selectUserInfo(info[0]);
+        String hash = DigestUtils.md5DigestAsHex(res.getPassword().getBytes()).substring(0, 6);
+
+        if (jwtUtil.isExpiration(token)
+                || res.getId() == null
+                || !res.getUserName().equals(info[1])
+                || !hash.equals(info[2])) {
+            return Response.failed(StatusCodeEnum.LOGIN_FAILED);
+        }
+
+        String id = jwtUtil.getUserInfo(token)[0].substring(0, 16);
+        String key = "user:formated:".concat(id);
+        redisTemplate.opsForValue().set(key, obj,24, TimeUnit.HOURS);
+        return Response.success();
     }
 }

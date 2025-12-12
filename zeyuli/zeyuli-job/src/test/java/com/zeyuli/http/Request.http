@@ -12,8 +12,25 @@ Content-Type: application/json
 }
 
 ###
+POST http://localhost:8080/user/cacheTravelInfo?
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKTQqAIBBA4bvMuoXjvx6iO4w5QQtDEiuI7p4t3-N7oPUEEbQLARUKQkWarCNjtMuYJPscrEaYoDc-Zio8NOWy7WPVK58jF7lK-RO-K0R01lgRvPHvB7t74OFeAAAA.LiiamimZWNQ6jkSaBpmXjkyRsvqWrzTOn7A2H5WakPid3o0d_0CviiJtqv4uActRk0CBbq_b_UCPNxSA0mUvCw
+Content-Type: application/json
+
+{
+  "travelId": "1234567890",
+  "travelName": "测试旅行",
+  "travelType": "出境",
+  "travelDate": "2022-01-01",
+  "travelTime": "08:00:00",
+  "travelDuration": "1天1夜",
+  "travelPrice": "1000",
+  "travelDesc": "这是一个测试旅行",
+  "travelImg": "http://localhost:8080/travelImg/1234567890.jpg"
+}
+
+###
 GET http://localhost:8080/user/getTravelInfo?
-    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xWKSQ6AIAwA_9KzB8tW5BH-oZR6MyES1MT4d_E2M5kHWs-QgHOxsRBJEOMk6lLU20jCma0ge5igNz1W3nXcP45Sr3IOE7MZg8P1rpCQgvdhRkfvB6KFiqVdAAAA.prWC91JgfnrH4Ru98MIhOzZlMR0C22t2UK8i6HqPoMK3K27uRSAz7hmdvA7DLhcEDC5lA8fGN3fgHfJoNr10Jg
+    token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKTQqAIBBA4bvMuoXjvx6iO4w5QQtDEiuI7p4t3-N7oPUEEbQLARUKQkWarCNjtMuYJPscrEaYoDc-Zio8NOWy7WPVK58jF7lK-RO-K0R01lgRvPHvB7t74OFeAAAA.LiiamimZWNQ6jkSaBpmXjkyRsvqWrzTOn7A2H5WakPid3o0d_0CviiJtqv4uActRk0CBbq_b_UCPNxSA0mUvCw
 
 ###
 GET http://localhost:8080/deekseek/planItinerary?
