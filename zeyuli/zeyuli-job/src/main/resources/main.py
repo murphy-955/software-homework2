@@ -36,7 +36,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', write_through
 
 # ---------- 配置 ----------
 client = OpenAI(
-    api_key=os.getenv("DEEPSeek_API_KEY", "sk-84dbc668f2d048ddb6c39ace5ae78f47"),
+    api_key=os.getenv("DEEPSeek_API_KEY", "sk-84dbc668f2d048ddb6c39ace5ae78f44"),
     base_url="https://api.deepseek.com"
 )
 MODEL = "deepseek-chat"
