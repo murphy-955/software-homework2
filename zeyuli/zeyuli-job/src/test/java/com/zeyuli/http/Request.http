@@ -12,20 +12,139 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:8080/user/cacheTravelInfo
-    ?token=eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKSw6AIAwA0bt07cKWT4VDeIcimLjAEAlqYry7uJzJe6C2AB40O4cKR0ElWiyLMZojBkpTdFYjDNBqOmbJqWuJedv7Klc8ey60Ev0k3QU8sjWWiNG9H2piiZ1eAAAA.LxR2TH73vr5J6aFaqY7X4AlOuVlj_49dOUAQSbGBLu4jBFsYimhxMiDYa1qB8VI09cQHYEt_6H5m9qvPuHvLMA
+POST http://106.15.90.163:8080/user/cacheTravelInfo?
+    token = eyJ6aXAiOiJHWklQIiwiYWxnIjoiSFM1MTIifQ.H4sIAAAAAAAA_xXKSw6AIAwA0bt07cIWyu8Q3qEKJi4wRIKaGO8uLmfyHqhthgDaeo8KR0ElWowVZm0jzpRc9EYjDNBqOibJqWuJedv7Klc8ey60Ev0k3QUCWsPGOSb1fvXHAiReAAAA.cAtjqQPha582paAa82SA4F4_7WVJMJaDIIOo9YL8zenygySeNxn8Xg7DvCGEkg5CoS1LgZKRNTJt68tQpTX8xQ
 Content-Type: application/json
 
 {
-  "travelId": "1234567890",
-  "travelName": "测试旅行",
-  "travelType": "出境",
-  "travelDate": "2022-01-01",
-  "travelTime": "08:00:00",
-  "travelDuration": "1天1夜",
-  "travelPrice": "1000",
-  "travelDesc": "这是一个测试旅行",
-  "travelImg": "http://localhost:8080/travelImg/1234567890.jpg"
+  "itinerary": {
+    "days": [
+      {
+        "dayIndex": 1,
+        "date": "2025-12-13",
+        "label": "成都文化初体验",
+        "items": [
+          {
+            "time": "09:00-12:00",
+            "title": "参观武侯祠",
+            "description": "探索三国文化，参观诸葛亮祠庙，了解蜀汉历史。",
+            "attractions": "武侯祠",
+            "cost": "门票约60元",
+            "durationHours": 3
+          },
+          {
+            "time": "13:00-16:00",
+            "title": "游览锦里古街",
+            "description": "漫步古街，体验传统川西民俗文化，品尝小吃。",
+            "attractions": "锦里古街",
+            "cost": "免费",
+            "durationHours": 3
+          },
+          {
+            "time": "17:00-19:00",
+            "title": "观看川剧变脸表演",
+            "description": "在剧院欣赏传统川剧，包括变脸、吐火等绝技。",
+            "attractions": "川剧剧院",
+            "cost": "表演门票约100元",
+            "durationHours": 2
+          }
+        ]
+      },
+      {
+        "dayIndex": 2,
+        "date": "2025-12-14",
+        "label": "历史与艺术之旅",
+        "items": [
+          {
+            "time": "09:00-12:00",
+            "title": "参观杜甫草堂",
+            "description": "探访唐代诗人杜甫故居，感受古典文学氛围。",
+            "attractions": "杜甫草堂",
+            "cost": "门票约50元",
+            "durationHours": 3
+          },
+          {
+            "time": "13:00-16:00",
+            "title": "游览宽窄巷子",
+            "description": "体验清代街区风貌，参观艺术画廊和手工艺品店。",
+            "attractions": "宽窄巷子",
+            "cost": "免费",
+            "durationHours": 3
+          },
+          {
+            "time": "17:00-19:00",
+            "title": "品尝成都火锅",
+            "description": "在当地知名火锅店体验麻辣美食文化。",
+            "attractions": "火锅餐厅",
+            "cost": "人均约80元",
+            "durationHours": 2
+          }
+        ]
+      },
+      {
+        "dayIndex": 3,
+        "date": "2025-12-15",
+        "label": "宗教与民俗探索",
+        "items": [
+          {
+            "time": "09:00-12:00",
+            "title": "参观青羊宫",
+            "description": "探访道教宫观，了解道教文化和建筑艺术。",
+            "attractions": "青羊宫",
+            "cost": "门票约10元",
+            "durationHours": 3
+          },
+          {
+            "time": "13:00-16:00",
+            "title": "游览文殊院",
+            "description": "参观佛教寺庙，体验宁静的禅意氛围。",
+            "attractions": "文殊院",
+            "cost": "免费",
+            "durationHours": 3
+          },
+          {
+            "time": "17:00-19:00",
+            "title": "体验茶馆文化",
+            "description": "在传统茶馆品茶，听评书，感受老成都生活。",
+            "attractions": "老茶馆",
+            "cost": "人均约30元",
+            "durationHours": 2
+          }
+        ]
+      },
+      {
+        "dayIndex": 4,
+        "date": "2025-12-16",
+        "label": "现代与传统融合",
+        "items": [
+          {
+            "time": "09:00-12:00",
+            "title": "参观成都博物馆",
+            "description": "了解成都从古至今的历史文化发展。",
+            "attractions": "成都博物馆",
+            "cost": "免费",
+            "durationHours": 3
+          },
+          {
+            "time": "13:00-16:00",
+            "title": "游览太古里",
+            "description": "探索现代商业区与传统建筑的结合，购物休闲。",
+            "attractions": "太古里",
+            "cost": "免费",
+            "durationHours": 3
+          },
+          {
+            "time": "17:00-19:00",
+            "title": "告别晚餐",
+            "description": "在特色餐厅享用最后一餐，回顾旅程。",
+            "attractions": "餐厅",
+            "cost": "人均约100元",
+            "durationHours": 2
+          }
+        ]
+      }
+    ]
+  }
 }
 
 ###

@@ -28,7 +28,7 @@ export const planItinerary = (params, onChunk) => {
 
         // 使用原生fetch API实现流式接收
         // TODO 注意要使用 baseUrl
-        fetch(`http://localhost:8080/deekseek/planItinerary?${new URLSearchParams(params)}`, {
+        fetch(`deekseek/planItinerary?${new URLSearchParams(params)}`, {
             method: 'GET',
             headers
         })

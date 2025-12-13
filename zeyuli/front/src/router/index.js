@@ -7,7 +7,7 @@ const Home = () => import('../views/Home.vue')
 const Result = () => import('../views/Result.vue')
 const Map = () => import('../views/Map.vue')
 const Edit = () => import('../views/Edit.vue')
-const Budget = () => import('../views/Budget.vue')
+// const Budget = () => import('../views/Budget.vue')
 const Profile = () => import('../views/Profile.vue')
 const Favorites = () => import('../views/Favorites.vue')
 const History = () => import('../views/History.vue')
@@ -52,11 +52,11 @@ const router = createRouter({
       name: 'edit',
       component: Edit
     },
-    {
-      path: '/budget',
-      name: 'budget',
-      component: Budget
-    },
+    // {
+    //   path: '/budget',
+    //   name: 'budget',
+    //   component: Budget
+    // },
     {
       path: '/profile',
       name: 'profile',

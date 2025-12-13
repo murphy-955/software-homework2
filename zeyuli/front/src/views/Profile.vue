@@ -22,10 +22,10 @@
           <span class="icon">🗺️</span>
           <span class="label">地图视图</span>
         </div>
-        <div class="sidebar-item" @click="navigateTo('/budget')">
-          <span class="icon">💰</span>
-          <span class="label">预算管理</span>
-        </div>
+<!--        <div class="sidebar-item" @click="navigateTo('/budget')">-->
+<!--          <span class="icon">💰</span>-->
+<!--          <span class="label">预算管理</span>-->
+<!--        </div>-->
         <div class="sidebar-item active" @click="navigateTo('/profile')">
           <span class="icon">👤</span>
           <span class="label">个人中心</span>
@@ -59,7 +59,7 @@
                   <span class="user-badge">VIP 会员</span>
                 </div>
               </div>
-              
+
               <div class="stats-row">
                 <div class="stat-item">
                   <div class="stat-val">12</div>
@@ -147,17 +147,18 @@
         </div>
         <div class="modal-body" v-if="testData">
           <div class="progress-bar">
-            <div class="progress" :style="{ width: `${(currentQuestionIndex + 1) / testData.questions.length * 100}%` }"></div>
+            <div class="progress"
+                 :style="{ width: `${(currentQuestionIndex + 1) / testData.questions.length * 100}%` }"></div>
           </div>
-          
+
           <div class="question-container">
             <h4 class="question-text">{{ currentQuestion.content }}</h4>
             <div class="options-list">
-              <button 
-                v-for="option in currentQuestion.options" 
-                :key="option.optionId"
-                class="option-btn"
-                @click="selectOption(option)"
+              <button
+                  v-for="option in currentQuestion.options"
+                  :key="option.optionId"
+                  class="option-btn"
+                  @click="selectOption(option)"
               >
                 {{ option.content }}
               </button>
@@ -183,7 +184,7 @@
             <h2>{{ testResult.dominantPersonalityType }}</h2>
             <p class="result-desc">{{ testResult.dominantPersonalityDescription }}</p>
           </div>
-          
+
           <div class="result-tags">
             <span v-for="tag in testResult.travelStyleTags" :key="tag" class="tag">{{ tag }}</span>
           </div>
@@ -206,9 +207,9 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { getPersonalityTest, calculateTestResult } from '../api/personality'
+import {ref, computed, reactive} from 'vue'
+import {useRouter} from 'vue-router'
+import {getPersonalityTest, calculateTestResult} from '../api/personality'
 
 const router = useRouter()
 
@@ -254,10 +255,10 @@ const closeTest = () => {
 
 const selectOption = async (option) => {
   if (!currentQuestion.value) return
-  
+
   // 记录答案
   userAnswers[currentQuestion.value.questionId] = option.optionId
-  
+
   // 下一题或提交
   if (currentQuestionIndex.value < testData.value.questions.length - 1) {
     currentQuestionIndex.value++
@@ -268,6 +269,8 @@ const selectOption = async (option) => {
 
 const submitTest = async () => {
   try {
+    // 再userAnswers里添加token
+    userAnswers.token = localStorage.token;
     const res = await calculateTestResult(userAnswers)
     testResult.value = res
     showTestModal.value = false
@@ -281,7 +284,7 @@ const submitTest = async () => {
 const generateItinerary = () => {
   // 跳转到首页并带上人格参数，或者直接调用生成接口
   // 这里简单演示跳转到首页
-  router.push({ path: '/home', query: { personality: testResult.value.dominantPersonalityType } })
+  router.push({path: '/home', query: {personality: testResult.value.dominantPersonalityType}})
 }
 </script>
 
@@ -297,10 +300,9 @@ const generateItinerary = () => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background:
-      radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.10), transparent 45%),
-      radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
-      linear-gradient(135deg, var(--purple-1) 0%, var(--purple-2) 100%);
+  background: radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.10), transparent 45%),
+  radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
+  linear-gradient(135deg, var(--purple-1) 0%, var(--purple-2) 100%);
 }
 
 .app-layout.sidebar-collapsed {
@@ -329,12 +331,14 @@ const generateItinerary = () => {
   padding: 18px 16px;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
 }
+
 .brand-row {
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
 }
+
 .brand-logo {
   width: 40px;
   height: 40px;
@@ -345,6 +349,7 @@ const generateItinerary = () => {
   box-shadow: 0 16px 36px rgba(102, 126, 234, 0.26);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
+
 .brand-text {
   font-weight: 900;
   color: #1d4ed8;
@@ -354,6 +359,7 @@ const generateItinerary = () => {
 .sidebar-nav {
   padding: 8px 0;
 }
+
 .sidebar-item {
   padding: 14px 18px;
   margin: 8px 14px;
@@ -365,15 +371,20 @@ const generateItinerary = () => {
   align-items: center;
   gap: 14px;
 }
+
 .sidebar-item:hover {
   background: rgba(15, 23, 42, 0.04);
 }
+
 .sidebar-item.active {
   background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
   color: #fff;
   box-shadow: 0 16px 34px rgba(102, 126, 234, 0.26);
 }
-.icon { font-size: 18px; }
+
+.icon {
+  font-size: 18px;
+}
 
 /* Main Content */
 .main-content {
@@ -387,7 +398,7 @@ const generateItinerary = () => {
 
 .edge-toggle {
   position: absolute;
-  left: 30px;
+  left: 4%;
   top: 18px;
   transform: translateX(-50%);
   z-index: 50;
@@ -401,6 +412,7 @@ const generateItinerary = () => {
   display: grid;
   place-items: center;
 }
+
 .chev {
   width: 10px;
   height: 10px;
@@ -408,7 +420,10 @@ const generateItinerary = () => {
   border-bottom: 3px solid rgba(76, 29, 149, 0.75);
   transform: rotate(135deg);
 }
-.chev.right { transform: rotate(-45deg); }
+
+.chev.right {
+  transform: rotate(-45deg);
+}
 
 /* Profile Specific Styles */
 .content-area {
@@ -472,12 +487,23 @@ const generateItinerary = () => {
   justify-content: space-around;
   margin-bottom: 24px;
   padding-bottom: 24px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.stat-item { text-align: center; }
-.stat-val { font-size: 20px; font-weight: bold; color: #333; }
-.stat-label { font-size: 12px; color: #666; }
+.stat-item {
+  text-align: center;
+}
+
+.stat-val {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+}
 
 .menu-item {
   width: 100%;
@@ -493,26 +519,46 @@ const generateItinerary = () => {
   color: #444;
   font-size: 15px;
 }
-.menu-item:hover { background: rgba(255,255,255,0.5); }
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
 
 /* Test Entry Card */
 .test-entry-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
   position: relative;
   overflow: hidden;
 }
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
-.card-header h3 { margin: 0; font-size: 18px; }
-.icon-bg { font-size: 48px; opacity: 0.2; position: absolute; right: -10px; top: -10px; }
-.card-desc { font-size: 14px; color: #666; margin-bottom: 16px; }
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.icon-bg {
+  font-size: 48px;
+  opacity: 0.2;
+  position: absolute;
+  right: -10px;
+  top: -10px;
+}
+
+.card-desc {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
 
 .btn-primary {
-  width: 100%;
+  width: 40%;
   padding: 10px;
   background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
   color: white;
@@ -521,16 +567,21 @@ const generateItinerary = () => {
   cursor: pointer;
   font-weight: bold;
   transition: transform 0.1s;
+  margin-left: 28%;
 }
-.btn-primary:active { transform: scale(0.98); }
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
 
 /* Activity List */
 .activity-item {
   display: flex;
   gap: 16px;
   padding: 16px 0;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
+
 .activity-icon {
   width: 40px;
   height: 40px;
@@ -540,12 +591,32 @@ const generateItinerary = () => {
   justify-content: center;
   font-size: 20px;
 }
-.activity-icon.blue { background: #e6f7ff; color: #1890ff; }
-.activity-icon.green { background: #f6ffed; color: #52c41a; }
-.activity-icon.orange { background: #fff7e6; color: #fa8c16; }
 
-.activity-title { font-weight: 500; color: #333; margin-bottom: 4px; }
-.activity-time { font-size: 12px; color: #999; }
+.activity-icon.blue {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.activity-icon.green {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.activity-icon.orange {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.activity-title {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #999;
+}
 
 /* Modal Styles */
 .modal-overlay {
@@ -554,7 +625,7 @@ const generateItinerary = () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -568,13 +639,19 @@ const generateItinerary = () => {
   max-width: 500px;
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   animation: slideUp 0.3s ease;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal-header {
@@ -583,6 +660,7 @@ const generateItinerary = () => {
   align-items: center;
   margin-bottom: 20px;
 }
+
 .close-btn {
   background: none;
   border: none;
@@ -598,6 +676,7 @@ const generateItinerary = () => {
   margin-bottom: 24px;
   overflow: hidden;
 }
+
 .progress {
   height: 100%;
   background: var(--purple-1);
@@ -621,15 +700,27 @@ const generateItinerary = () => {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .option-btn:hover {
   border-color: var(--purple-1);
   background: #f6f8ff;
 }
 
 /* Result Modal */
-.result-header { text-align: center; margin-bottom: 24px; }
-.result-icon { font-size: 48px; margin-bottom: 12px; }
-.result-desc { color: #666; line-height: 1.6; }
+.result-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.result-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.result-desc {
+  color: #666;
+  line-height: 1.6;
+}
 
 .result-tags {
   display: flex;
@@ -638,6 +729,7 @@ const generateItinerary = () => {
   justify-content: center;
   margin-bottom: 24px;
 }
+
 .tag {
   background: #f0f2f5;
   padding: 4px 12px;
@@ -646,9 +738,20 @@ const generateItinerary = () => {
   color: #666;
 }
 
-.result-section h4 { margin-bottom: 12px; }
-.result-section ul { padding-left: 20px; color: #555; }
-.result-section li { margin-bottom: 8px; }
+.result-section h4 {
+  margin-bottom: 12px;
+}
 
-.result-actions { margin-top: 24px; }
+.result-section ul {
+  padding-left: 20px;
+  color: #555;
+}
+
+.result-section li {
+  margin-bottom: 8px;
+}
+
+.result-actions {
+  margin-top: 24px;
+}
 </style>

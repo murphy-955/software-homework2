@@ -23,10 +23,10 @@
           <span class="icon">🗺️</span>
           <span class="label">地图视图</span>
         </div>
-        <div class="sidebar-item" @click="navigateTo('/budget')">
-          <span class="icon">💰</span>
-          <span class="label">预算管理</span>
-        </div>
+<!--        <div class="sidebar-item" @click="navigateTo('/budget')">-->
+<!--          <span class="icon">💰</span>-->
+<!--          <span class="label">预算管理</span>-->
+<!--        </div>-->
         <div class="sidebar-item" @click="navigateTo('/profile')">
           <span class="icon">👤</span>
           <span class="label">个人中心</span>
@@ -88,10 +88,10 @@
                     <span class="meta-icon">💰</span>
                     ¥{{ 2500 }}
                   </span>
-                  <span class="meta-tag">
-                    <span class="meta-icon">📍</span>
-                    {{ '北京' }}
-                  </span>
+<!--                  <span class="meta-tag">-->
+<!--                    <span class="meta-icon">📍</span>-->
+<!--                    {{ '北京' }}-->
+<!--                  </span>-->
                 </div>
               </div>
 

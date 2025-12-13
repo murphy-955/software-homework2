@@ -7,6 +7,7 @@ import com.zeyuli.pojo.vo.UserVo;
 import com.zeyuli.service.impl.UserServiceImpl;
 import com.zeyuli.util.Response;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ import java.util.Map;
 @RequestMapping("/user")
 // todo 仅测试用
 @CrossOrigin
+@Slf4j
 public class UserController {
     @Autowired
     private UserServiceImpl userService;
@@ -42,6 +44,7 @@ public class UserController {
     @GetMapping("/getTravelInfo")
     public Object getTravelInfo(@RequestParam("token") String token) {
         if (token == null) {
+            log.error("token is null");
             return Response.failed(StatusCodeEnum.LOGIN_FAILED);
         }
         return userService.getTravelInfo(token);

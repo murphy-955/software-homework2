@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2025-10-21 16:58
  */
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserMapper userMapper;
@@ -124,6 +125,7 @@ public class UserServiceImpl implements UserService {
         // key=user:formated:f969248d621bcded
         Object obj = redisTemplate.opsForValue().get(key);
         if (obj != null) {
+            log.info("从redis中获取用户行程信息成功");
             return obj;
         }
         return Response.failed(StatusCodeEnum.LOGIN_FAILED);

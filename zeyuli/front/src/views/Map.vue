@@ -22,10 +22,10 @@
           <span class="icon">🗺️</span>
           <span class="label">地图视图</span>
         </div>
-        <div class="sidebar-item" @click="navigateTo('/budget')">
-          <span class="icon">💰</span>
-          <span class="label">预算管理</span>
-        </div>
+<!--        <div class="sidebar-item" @click="navigateTo('/budget')">-->
+<!--          <span class="icon">💰</span>-->
+<!--          <span class="label">预算管理</span>-->
+<!--        </div>-->
         <div class="sidebar-item" @click="navigateTo('/profile')">
           <span class="icon">👤</span>
           <span class="label">个人中心</span>

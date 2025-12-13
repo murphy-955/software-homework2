@@ -55,6 +55,9 @@ public class DeekSeekServiceImpl implements DeekSeekService {
     // 存储用户对话历史，key: userId, value: 对话消息列表
     private final Map<String, List<Message>> conversationHistory = new ConcurrentHashMap<>();
 
+    @Value("${ai.script.prod-path}")
+    private String scriptPath;
+
     // 最大历史记录条数，防止内存溢出
     private static final int MAX_HISTORY_SIZE = 20;
     @Autowired
@@ -110,7 +113,6 @@ public class DeekSeekServiceImpl implements DeekSeekService {
 
             try {
                 // 获取Python脚本路径（建议配置在application.properties）
-                String scriptPath = "D:\\fzu\\Software\\homework2\\zeyuli\\zeyuli-job\\src\\main\\resources\\main.py";
                 List<String> command = Arrays.asList("python", scriptPath);
 
                 ProcessBuilder pb = new ProcessBuilder(command)

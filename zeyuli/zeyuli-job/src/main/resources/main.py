@@ -44,10 +44,6 @@ MODEL = "deepseek-chat"
 
 # ---------- 工具 ----------
 def build_prompt(data: dict) -> str:
-    """
-    完全复刻 Java 中的 buildJsonTravelPrompt / buildJsonTravelPromptWithUserInput
-    逻辑，保证输出格式一致。
-    """
     start = data["startCity"]
     end = data["endCity"]
     start_date = datetime.fromisoformat(data["startDate"])
@@ -59,57 +55,50 @@ def build_prompt(data: dict) -> str:
 
     if not user_input:
         # 无用户输入版本
-        return f"""
-你是严格的 JSON 生成器，只返回合法 JSON，禁止任何注释、解释、markdown 代码块。
-若格式错误，用户将无法解析，视为严重事故。
-
-下面是一段已验证的范例，你必须保持完全相同的键名、嵌套深度、数据类型（String/Number/List），仅把内容替换成本次行程的真实信息。
-
-=== 范例开始 ===
-{
-  "days": [
-    {{
-      "dayIndex": 1,
-      "date": "2025-12-20",
-      "label": "第1天",
-      "items": [
-        {{
-          "time": "09:00",
-          "title": "抵达厦门",
-          "description": "- 抵达 **厦门高崎机场**\\\\n- 乘坐 **机场快线** 前往市区\\\\n> 建议提前购买 **厦门公交卡**",
-          "attractions": "厦门高崎机场",
-          "cost": "约30元",
-          "durationHours": 1
-        }}
-      ]
-    }}
-  ]
-}
-=== 范例结束 ===
-
-本次行程信息：
-- 出发地：{start}
-- 目的地：{end}
-- 出发日期：{fmt_date(start_date)}
-- 返程日期：{fmt_date(end_date)}
-- 总天数：{days}
-
-严格按照范例的键名、结构、类型生成 JSON，description 字段允许使用 Markdown 排版。
-禁止输出范例之外的多余文字、禁止包裹 ```json、禁止注释。
-""".strip()
+        return (
+            "你是严格的 JSON 生成器，只返回合法 JSON，禁止任何注释、解释、markdown 代码块。\n"
+            "若格式错误，用户将无法解析，视为严重事故。\n\n"
+            "下面是一段已验证的范例，你必须保持完全相同的键名、嵌套深度、数据类型（String/Number/List），"
+            "仅把内容替换成本次行程的真实信息。\n\n"
+            '=== 范例开始 ===\n'
+            '{\n'
+            '  "days": [\n'
+            '    {\n'
+            '      "dayIndex": 1,\n'
+            '      "date": "2025-12-20",\n'
+            '      "label": "第1天",\n'
+            '      "items": [\n'
+            '        {\n'
+            '          "time": "09:00",\n'
+            '          "title": "抵达厦门",\n'
+            '          "description": "- 抵达 **厦门高崎机场**\\n- 乘坐 **机场快线** 前往市区\\n> 建议提前购买 **厦门公交卡**",\n'
+            '          "attractions": "厦门高崎机场",\n'
+            '          "cost": "约30元",\n'
+            '          "durationHours": 1\n'
+            '        }\n'
+            '      ]\n'
+            '    }\n'
+            '  ]\n'
+            '}\n'
+            '=== 范例结束 ===\n\n'
+            f'本次行程信息：\n'
+            f'- 出发地：{start}\n'
+            f'- 目的地：{end}\n'
+            f'- 出发日期：{fmt_date(start_date)}\n'
+            f'- 返程日期：{fmt_date(end_date)}\n'
+            f'- 总天数：{days}\n\n'
+            "严格按照范例的键名、结构、类型生成 JSON，description 字段允许使用 Markdown 排版。\n"
+            "禁止输出范例之外的多余文字、禁止包裹 ```json、禁止注释。"
+        )
     else:
         # 有用户输入版本
-        return f"""
-输出格式与字段要求与刚才完全相同，description 仍支持 Markdown。
-
-用户修改要求：
-{user_input}
-
-行程天数：{days} 天
-出发：{start} → {end}，{fmt_date(start_date)} 至 {fmt_date(end_date)}
-
-请直接返回 JSON，不要任何额外文字。
-""".strip()
+        return (
+            "输出格式与字段要求与刚才完全相同，description 仍支持 Markdown。\n\n"
+            f'用户修改要求：\n{user_input}\n\n'
+            f'行程天数：{days} 天\n'
+            f'出发：{start} → {end}，{fmt_date(start_date)} 至 {fmt_date(end_date)}\n\n'
+            "请直接返回 JSON，不要任何额外文字。"
+        )
 
 
 def stream_json_travel(data: dict):
